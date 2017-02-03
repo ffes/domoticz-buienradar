@@ -1,9 +1,11 @@
 #
 #   Buienradar.nl Weather Lookup Plugin
-#   https://www.buienradar.nl/overbuienradar/gratis-weerdata
 #
 #   Frank Fesevur, 2017
 #   https://github.com/ffes/domoticz-buienradar
+#
+#   About the weather service:
+#   https://www.buienradar.nl/overbuienradar/gratis-weerdata
 #
 """
 <plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
