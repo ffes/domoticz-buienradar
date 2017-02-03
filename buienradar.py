@@ -58,10 +58,10 @@ class Buienradar:
 
         url = 'http://xml.buienradar.nl/'
         try:
-            print('Retrieve weather data from ' + url)
+            Domoticz.Log('Retrieve weather data from ' + url)
             xml = urllib.request.urlopen(url, data=None)
         except urllib.error.HTTPError as e:
-            print("HTTP error: " + str(e) + " URL: " + url)
+            Domoticz.Log("HTTP error: " + str(e) + " URL: " + url)
             return
 
         self.tree = ET.parse(xml)
