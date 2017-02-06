@@ -37,48 +37,29 @@ br = Buienradar()
 #############################################################################
 
 def onStart():
-    #Domoticz.Log("onStart called")
+
     createDevices()
-    DumpConfigToDebug()
+    #DumpConfigToDebug()
     #DumpConfigToLog()
 
     br.getBuienradarXML()
     br.getNearbyWeatherStation(myLat, myLon)
-    br.getWeather()
 
-def onConnect(Status, Description):
-    Domoticz.Log("onConnect called")
+    fillDevices()
 
-def onMessage(Data, Status, Extra):
-    Domoticz.Log("onMessage called")
-
-def onCommand(Unit, Command, Level, Hue):
-    Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
-
-def onNotification(Data):
-    Domoticz.Log("onNotification called: " + str(Data))
+    Domoticz.Heartbeat(30)
+    return True
 
 def onHeartbeat():
-    #Domoticz.Log("onHeartBeat called")
-    return
 
-    # No nearby weather station detected, stop
-    if bt.stationID == "":
-        return
+    # Does the weather information needs to be updated?
+    if br.needUpdate(15):
 
-    nextUpdate = bt.lastUpdate + timedelta(minutes=15)
-    if datetime.now() > nextUpdate:
+        # Get new information and update the devices
         br.getBuienradarXML()
-        br.getWeather()
+        fillDevices()
 
-def onDisconnect():
-    Domoticz.Log("onHeartBeat called")
-
-def onStop():
-    Domoticz.Log("onStop called")
-
-def sendMessage(data, method, url):
-    Domoticz.Log("sendMessage called: " + str(data))
+    return True
 
 #############################################################################
 #                         Domoticz helper functions                         #
@@ -108,6 +89,14 @@ def DumpConfigToLog():
         Domoticz.Log("Device nValue:    " + str(Devices[x].nValue))
         Domoticz.Log("Device sValue:   '" + Devices[x].sValue + "'")
 
+def UpdateDevice(Unit, nValue, sValue):
+
+    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
+    if (Unit in Devices):
+
+        Devices[Unit].Update(nValue, str(sValue))
+        Domoticz.Debug("Update " + str(nValue) + ":'" + str(sValue) + "' (" + Devices[Unit].Name + ")")
+
 #############################################################################
 #                       Device specific functions                           #
 #############################################################################
@@ -117,3 +106,8 @@ def createDevices():
     if len(Devices) == 0:
         Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
         Domoticz.Log("Devices created.")
+
+def fillDevices():
+
+    if br.getWeather():
+        UpdateDevice(1, 0, str(br.temperature))

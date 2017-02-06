@@ -26,6 +26,12 @@ class Buienradar:
         self.stationID = ""
         self.tree = None
 
+        self.observationDate = None
+        self.temperature = None             # degrees Celsius
+        self.windSpeed = None               # m/s
+        self.windDirection = None           # degrees
+        self.windSpeedGusts = None          # m/s
+
     #
     # Calculate the great circle distance between two points
     # on the earth (specified in decimal degrees)
@@ -117,6 +123,30 @@ class Buienradar:
             self.stationID = ""
 
     #
+    #
+    #
+
+    def needUpdate(self, minutes):
+
+        # Is a weather station found?
+        if self.stationID == "":
+            return False
+
+        nextUpdate = self.lastUpdate + timedelta(minutes=minutes)
+        return datetime.now() > nextUpdate
+
+    #
+    # Parse a float and return None if no float is given
+    #
+
+    def parseFloatValue(self, s):
+
+        try:
+            return float(s)
+        except:
+            return None
+
+    #
     # Retrieve all the weather data from the nearby weather station
     #
 
@@ -124,29 +154,42 @@ class Buienradar:
 
         # Is the tree set?
         if self.tree == None:
-            return
+            return False
 
         # Was the station set properly?
         if self.stationID == "":
-            return
+            return False
+
+        # Reset all the weather data
+        self.observationDate = None
+        self.temperature = None
+        self.windSpeed = None
+        self.windDirection = None
+        self.windSpeedGusts = None
 
         # Get the weather information from the station
         for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
 
-            # windsnelheidMS
-            # windrichtingGR
             # regenMMPU
             # luchtvochtigheid
             # luchtdruk
             # zichtmeters
-            # windstotenMS
             # zonintensiteitWM2
 
-            datum = datetime.strptime(station.find('datum').text, '%m/%d/%Y %H:%M:%S')
-            temp = station.find('temperatuurGC').text
+            #self.observationDate = datetime.strptime(station.find('datum').text, '%m/%d/%Y %H:%M:%S')
+            self.temperature = self.parseFloatValue(station.find('temperatuurGC').text)
+            self.windSpeed = self.parseFloatValue(station.find('windsnelheidMS').text)
+            self.windDirection = self.parseFloatValue(station.find('windrichtingGR').text)
+            self.windSpeedGusts = self.parseFloatValue(station.find('windstotenMS').text)
 
-            Domoticz.Log("Observation: " + str(datum))
-            Domoticz.Log("Temparture: " + temp)
+            #Domoticz.Log("Observation: " + str(self.observationDate))
+            Domoticz.Log("Temperature: " + str(self.temperature))
+            Domoticz.Log("Wind Speed: " + str(self.windSpeed))
+            Domoticz.Log("Wind Direction: " + str(self.windDirection))
+            Domoticz.Log("Wind Speed Gusts: " + str(self.windSpeedGusts))
 
-            #Domoticz.Devices[1].Update(0, temp)
-            return
+            self.lastUpdate = datetime.now()
+
+            return True
+
+        return False
