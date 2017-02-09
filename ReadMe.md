@@ -42,11 +42,6 @@ In your `domoticz/plugins` directory do
 git clone https://github.com/ffes/domoticz-buienradar
 ```
 
-In the directory is a file named `plugin.py`. Open it with your favorite
-editor and update the `myLat` and `myLon` values. I hope there is a decent
-way to get this information from your Domoticz settings, but I haven't found
-it yet.
-
 Restart your Domoticz service with:
 
 ```bash
@@ -55,6 +50,10 @@ sudo service domoticz.sh restart
 
 Now go to **Setup**, **Hardware** in your Domoticz interface. There you add
 "Buienradar.nl (Weather lookup)".
+
+Enter the latitude and longitude for your location. I hope there is a decent
+way to get this information from your Domoticz settings, but I haven't found
+it yet.
 
 In the log you should see the plugin coming to life, picking the weather
 station nearby and adding "Temperature" information to your interface.

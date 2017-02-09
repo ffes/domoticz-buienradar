@@ -10,6 +10,8 @@
 """
 <plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
+        <param field="Mode1" label="Latitude" width="200px" required="true" default=""/>
+        <param field="Mode2" label="Longitude" width="200px" required="true" default=""/>
     </params>
 </plugin>
 """
@@ -26,10 +28,6 @@ from math import radians, cos, sin, asin, sqrt
 from datetime import datetime, timedelta
 from buienradar import Buienradar
 
-# This information should come from domoticz!!!
-myLat = 52.095556
-myLon = 4.316389
-
 br = Buienradar()
 
 #############################################################################
@@ -41,6 +39,10 @@ def onStart():
     createDevices()
     #DumpConfigToDebug()
     #DumpConfigToLog()
+
+    # This information should come from domoticz!!!
+    myLat = float(Parameters["Mode1"])
+    myLon = float(Parameters["Mode2"])
 
     br.getBuienradarXML()
     br.getNearbyWeatherStation(myLat, myLon)
