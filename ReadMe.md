@@ -1,6 +1,7 @@
 Domoticz Buienradar.nl Weather Lookup Plugin
 ============================================
 
+
 Short summary
 -------------
 
@@ -86,7 +87,8 @@ To do a real local test download the xml once with
 wget http://xml.buienradar.nl -O buienradar.xml
 ```
 
-The localtest.py will use this file when it is found in the current directory.
+`localtest.py` will use this file when it is found in the current directory.
+This way you can avoid hammering the website when testing.
 
 If you want to summit a pull request, please use an editor that supports
 [EditorConfig](http://editorconfig.org) so the line endings and indent style
