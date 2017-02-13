@@ -32,7 +32,7 @@ class Buienradar:
         self.observationDate = datetime.now()
         self.temperature = None             # degrees Celsius
         self.windSpeed = None               # m/s
-        self.windDirection = None           # degrees
+        self.windBearing = None             # degrees
         self.windSpeedGusts = None          # m/s
 
     #
@@ -179,45 +179,45 @@ class Buienradar:
     # Convert the wind direction to a (English) abbreviation
     #
 
-    def getWindDirectionText(self):
+    def getWindDirection(self):
 
-        if self.windDirection == None:
+        if self.windBearing == None:
             return ""
 
-        if self.windDirection < 0 or self.windDirection > 360:
+        if self.windBearing < 0 or self.windBearing > 360:
             return ""
 
-        if self.windDirection > 348 or  self.windDirection <=  11:
+        if self.windBearing > 348 or  self.windBearing <=  11:
             return "N"
-        if self.windDirection >  11 and self.windDirection <=  33:
+        if self.windBearing >  11 and self.windBearing <=  33:
             return "NNE"
-        if self.windDirection >  33 and self.windDirection <=  57:
+        if self.windBearing >  33 and self.windBearing <=  57:
             return "NE"
-        if self.windDirection >  57 and self.windDirection <=  78:
+        if self.windBearing >  57 and self.windBearing <=  78:
             return "ENE"
-        if self.windDirection >  78 and self.windDirection <= 102:
+        if self.windBearing >  78 and self.windBearing <= 102:
             return "E"
-        if self.windDirection > 102 and self.windDirection <= 123:
+        if self.windBearing > 102 and self.windBearing <= 123:
             return "ESE"
-        if self.windDirection > 123 and self.windDirection <= 157:
+        if self.windBearing > 123 and self.windBearing <= 157:
             return "SE"
-        if self.windDirection > 157 and self.windDirection <= 168:
+        if self.windBearing > 157 and self.windBearing <= 168:
             return "SSE"
-        if self.windDirection > 168 and self.windDirection <= 192:
+        if self.windBearing > 168 and self.windBearing <= 192:
             return "S"
-        if self.windDirection > 192 and self.windDirection <= 213:
+        if self.windBearing > 192 and self.windBearing <= 213:
             return "SSW"
-        if self.windDirection > 213 and self.windDirection <= 237:
+        if self.windBearing > 213 and self.windBearing <= 237:
             return "SW"
-        if self.windDirection > 237 and self.windDirection <= 258:
+        if self.windBearing > 237 and self.windBearing <= 258:
             return "WSW"
-        if self.windDirection > 258 and self.windDirection <= 282:
+        if self.windBearing > 258 and self.windBearing <= 282:
             return "W"
-        if self.windDirection > 282 and self.windDirection <= 303:
+        if self.windBearing > 282 and self.windBearing <= 303:
             return "WNW"
-        if self.windDirection > 303 and self.windDirection <= 327:
+        if self.windBearing > 303 and self.windBearing <= 327:
             return "NW"
-        if self.windDirection > 327 and self.windDirection <= 348:
+        if self.windBearing > 327 and self.windBearing <= 348:
             return "NNW"
 
         # just in case
@@ -252,14 +252,14 @@ class Buienradar:
             #self.observationDate = datetime.strptime(station.find('datum').text, '%m/%d/%Y %H:%M:%S')
             self.temperature = self.parseFloatValue(station.find('temperatuurGC').text)
             self.windSpeed = self.parseFloatValue(station.find('windsnelheidMS').text)
-            self.windDirection = self.parseFloatValue(station.find('windrichtingGR').text)
+            self.windBearing = self.parseFloatValue(station.find('windrichtingGR').text)
             self.windSpeedGusts = self.parseFloatValue(station.find('windstotenMS').text)
 
             #Domoticz.Log("Observation: " + str(self.observationDate))
             Domoticz.Log("Temperature: " + str(self.temperature))
             Domoticz.Log("Wind Speed: " + str(self.windSpeed))
-            Domoticz.Log("Wind Direction: " + str(self.windDirection))
-            Domoticz.Log("Wind DirectionText: " + self.getWindDirectionText())
+            Domoticz.Log("Wind Bearing: " + str(self.windBearing))
+            Domoticz.Log("Wind Direction: " + self.getWindDirection())
             Domoticz.Log("Wind Speed Gusts: " + str(self.windSpeedGusts))
             Domoticz.Log("Wind Chill: " + str(self.getWindChill()))
 
