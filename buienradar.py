@@ -92,12 +92,12 @@ class Buienradar:
             for station in stations.findall('weerstation'):
 
                 # What is the temperature at this station?
-                temp = station.find('temperatuurGC').text
+                temp = self.parseFloatValue(station.find('temperatuurGC').text)
 
                 # If no is temperature set, skip this entry
                 # Many weather stations only measure wind speed
                 # They are not useful for weather information in domoticz
-                if temp == "-":
+                if temp == None:
                     continue
 
                 # Where is this station?
