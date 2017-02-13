@@ -34,6 +34,7 @@ class Buienradar:
         self.windSpeed = None               # m/s
         self.windBearing = None             # degrees
         self.windSpeedGusts = None          # m/s
+        self.pressure = None                # hPa
 
     #
     # Calculate the great circle distance between two points
@@ -224,6 +225,39 @@ class Buienradar:
         return ""
 
     #
+    # Based on various picture of analogue barometers found in the Internet
+    # If anybody has better input, please let me know
+    #
+
+    def getBarometerForecast(self):
+
+        if self.pressure == None:
+            return 5
+
+        # Thunderstorm = 4
+        if self.pressure < 966:
+            return 4
+
+        # Cloudy/Rain = 6
+        if self.pressure < 993:
+            return 6
+
+        # Cloudy = 2
+        if self.pressure < 1007:
+            return 2
+
+        # Unstable = 3
+        if self.pressure < 1013:
+            return 3
+
+        # Stable = 0
+        if self.pressure < 1033:
+            return 0
+
+        # Sunny = 1
+        return 1
+
+    #
     # Retrieve all the weather data from the nearby weather station
     #
 
@@ -245,7 +279,6 @@ class Buienradar:
 
             # regenMMPU
             # luchtvochtigheid
-            # luchtdruk
             # zichtmeters
             # zonintensiteitWM2
 
@@ -254,6 +287,7 @@ class Buienradar:
             self.windSpeed = self.parseFloatValue(station.find('windsnelheidMS').text)
             self.windBearing = self.parseFloatValue(station.find('windrichtingGR').text)
             self.windSpeedGusts = self.parseFloatValue(station.find('windstotenMS').text)
+            self.pressure = self.parseFloatValue(station.find('luchtdruk').text)
 
             #Domoticz.Log("Observation: " + str(self.observationDate))
             Domoticz.Log("Temperature: " + str(self.temperature))
@@ -262,6 +296,8 @@ class Buienradar:
             Domoticz.Log("Wind Direction: " + self.getWindDirection())
             Domoticz.Log("Wind Speed Gusts: " + str(self.windSpeedGusts))
             Domoticz.Log("Wind Chill: " + str(self.getWindChill()))
+            Domoticz.Log("Barometer: " + str(self.pressure))
+            Domoticz.Log("Barometer Forecast: " + str(self.getBarometerForecast()))
 
             self.lastUpdate = datetime.now()
 
