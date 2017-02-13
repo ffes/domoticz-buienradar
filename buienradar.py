@@ -151,6 +151,80 @@ class Buienradar:
             return None
 
     #
+    # Based on https://nl.wikipedia.org/wiki/Gevoelstemperatuur
+    #
+
+    def getWindChill(self):
+
+        # Do we have a temperature?
+        if self.temperature == None:
+            return None
+
+        # Wind chill is only valid for temperatures between -46 C and +10 C
+        if self.temperature < -46 or self.temperature > 10:
+            return temperature
+
+        # No wind, no wind chill
+        if self.windSpeed == None:
+            return self.temperature
+
+        # Wind chill is only valid for wind speed between 1.3 m/s and 49 m/s
+        if self.windSpeed < 1.3 or self.windSpeed > 49:
+            return self.temperature
+
+        # Calculate the wind chill based on the JAG/TI-method
+        windChill = 13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16))
+        return round(windChill, 1)
+
+    #
+    # Convert the wind direction to a (English) abbreviation
+    #
+
+    def getWindDirectionText(self):
+
+        if self.windDirection == None:
+            return ""
+
+        if self.windDirection < 0 or self.windDirection > 360:
+            return ""
+
+        if self.windDirection > 348 or  self.windDirection <=  11:
+            return "N"
+        if self.windDirection >  11 and self.windDirection <=  33:
+            return "NNE"
+        if self.windDirection >  33 and self.windDirection <=  57:
+            return "NE"
+        if self.windDirection >  57 and self.windDirection <=  78:
+            return "ENE"
+        if self.windDirection >  78 and self.windDirection <= 102:
+            return "E"
+        if self.windDirection > 102 and self.windDirection <= 123:
+            return "ESE"
+        if self.windDirection > 123 and self.windDirection <= 157:
+            return "SE"
+        if self.windDirection > 157 and self.windDirection <= 168:
+            return "SSE"
+        if self.windDirection > 168 and self.windDirection <= 192:
+            return "S"
+        if self.windDirection > 192 and self.windDirection <= 213:
+            return "SSW"
+        if self.windDirection > 213 and self.windDirection <= 237:
+            return "SW"
+        if self.windDirection > 237 and self.windDirection <= 258:
+            return "WSW"
+        if self.windDirection > 258 and self.windDirection <= 282:
+            return "W"
+        if self.windDirection > 282 and self.windDirection <= 303:
+            return "WNW"
+        if self.windDirection > 303 and self.windDirection <= 327:
+            return "NW"
+        if self.windDirection > 327 and self.windDirection <= 348:
+            return "NNW"
+
+        # just in case
+        return ""
+
+    #
     # Retrieve all the weather data from the nearby weather station
     #
 
@@ -186,7 +260,9 @@ class Buienradar:
             Domoticz.Log("Temperature: " + str(self.temperature))
             Domoticz.Log("Wind Speed: " + str(self.windSpeed))
             Domoticz.Log("Wind Direction: " + str(self.windDirection))
+            Domoticz.Log("Wind DirectionText: " + self.getWindDirectionText())
             Domoticz.Log("Wind Speed Gusts: " + str(self.windSpeedGusts))
+            Domoticz.Log("Wind Chill: " + str(self.getWindChill()))
 
             self.lastUpdate = datetime.now()
 
