@@ -25,8 +25,12 @@ class Buienradar:
         self.lastUpdate = datetime.now()
         self.stationID = ""
         self.tree = None
+        resetWeatherValues(self)
 
-        self.observationDate = None
+
+    def resetWeatherValues(self):
+
+        self.observationDate = datetime.now()
         self.temperature = None             # degrees Celsius
         self.windSpeed = None               # m/s
         self.windDirection = None           # degrees
@@ -161,11 +165,7 @@ class Buienradar:
             return False
 
         # Reset all the weather data
-        self.observationDate = None
-        self.temperature = None
-        self.windSpeed = None
-        self.windDirection = None
-        self.windSpeedGusts = None
+        resetWeatherValues(self)
 
         # Get the weather information from the station
         for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
