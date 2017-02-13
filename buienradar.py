@@ -35,6 +35,7 @@ class Buienradar:
         self.windBearing = None             # degrees
         self.windSpeedGusts = None          # m/s
         self.pressure = None                # hPa
+        self.humidity = None                # percentage
 
     #
     # Calculate the great circle distance between two points
@@ -138,6 +139,17 @@ class Buienradar:
 
         nextUpdate = self.lastUpdate + timedelta(minutes=minutes)
         return datetime.now() > nextUpdate
+
+    #
+    # Parse an int and return None if no int is given
+    #
+
+    def parseIntValue(self, s):
+
+        try:
+            return int(s)
+        except:
+            return None
 
     #
     # Parse a float and return None if no float is given
@@ -258,6 +270,31 @@ class Buienradar:
         return 1
 
     #
+    #
+    #
+
+    def getHumidityStatus(self):
+
+        # Is there a humidity?
+        if self.humidity == None:
+            return 0
+
+        # Comfortable?
+        if self.humidity > 45 and self.humidity < 70:
+            return 1
+
+        # Dry?
+        if self.humidity <= 45:
+            return 2
+
+        # Wet?
+        if self.humidity >= 70:
+            return 3
+
+        # Normal (just in case)
+        return 0
+
+    #
     # Retrieve all the weather data from the nearby weather station
     #
 
@@ -278,7 +315,6 @@ class Buienradar:
         for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
 
             # regenMMPU
-            # luchtvochtigheid
             # zichtmeters
             # zonintensiteitWM2
 
@@ -288,6 +324,7 @@ class Buienradar:
             self.windBearing = self.parseFloatValue(station.find('windrichtingGR').text)
             self.windSpeedGusts = self.parseFloatValue(station.find('windstotenMS').text)
             self.pressure = self.parseFloatValue(station.find('luchtdruk').text)
+            self.humidity = self.parseIntValue(station.find('luchtvochtigheid').text)
 
             #Domoticz.Log("Observation: " + str(self.observationDate))
             Domoticz.Log("Temperature: " + str(self.temperature))
@@ -298,6 +335,8 @@ class Buienradar:
             Domoticz.Log("Wind Chill: " + str(self.getWindChill()))
             Domoticz.Log("Barometer: " + str(self.pressure))
             Domoticz.Log("Barometer Forecast: " + str(self.getBarometerForecast()))
+            Domoticz.Log("Humidity: " + str(self.humidity))
+            Domoticz.Log("Humidity status: " + str(self.getHumidityStatus()))
 
             self.lastUpdate = datetime.now()
 
