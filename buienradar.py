@@ -101,8 +101,8 @@ class Buienradar:
                     continue
 
                 # Where is this station?
-                lat = float(station.find('latGraden').text)
-                lon = float(station.find('lonGraden').text)
+                lat = float(station.find('lat').text)
+                lon = float(station.find('lon').text)
 
                 # Is this the station nearby?
                 dist = self.haversine(myLat, myLon, lat, lon)
