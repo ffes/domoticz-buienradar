@@ -105,11 +105,23 @@ def UpdateDevice(Unit, nValue, sValue):
 
 def createDevices():
 
-    if len(Devices) == 0:
-        Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
-        Domoticz.Log("Devices created.")
+    # Are there any devices?
+    if len(Devices) != 0:
+        # Could be the user deleted some devices, so do nothing
+        return
+
+    Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
+    Domoticz.Device(Name="Wind", Unit=2, TypeName="Wind").Create()
+    Domoticz.Log("Devices created.")
 
 def fillDevices():
 
     if br.getWeather():
+
         UpdateDevice(1, 0, str(br.temperature))
+        UpdateDevice(2, 0, str(br.windBearing)
+                    + ";" + br.getWindDirection()
+                    + ";" + str(br.windSpeed * 10)
+                    + ";" + str(br.windSpeedGusts * 10)
+                    + ";" + str(round(br.temperature))
+                    + ";" + str(round(br.getWindChill())))
