@@ -174,7 +174,7 @@ class Buienradar:
 
         # Wind chill is only valid for temperatures between -46 C and +10 C
         if self.temperature < -46 or self.temperature > 10:
-            return temperature
+            return self.temperature
 
         # No wind, no wind chill
         if self.windSpeed == None:
