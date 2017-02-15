@@ -111,7 +111,7 @@ def createDevices():
         return
 
     Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
-    Domoticz.Device(Name="Wind", Unit=2, TypeName="Wind").Create()
+    Domoticz.Device(Name="Wind", Unit=2, TypeName="Wind+Temp+Chill").Create()
     Domoticz.Log("Devices created.")
 
 def fillDevices():
