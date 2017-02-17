@@ -270,7 +270,9 @@ class Buienradar:
         return 1
 
     #
-    #
+    # Based on Mollier diagram and Fanger (comfortable)
+    # These values are normally used for indoor situation,
+    # but this weather lookup plugin obviously is outdoor.
     #
 
     def getHumidityStatus(self):
@@ -279,19 +281,21 @@ class Buienradar:
         if self.humidity == None:
             return 0
 
-        # Comfortable?
-        if self.humidity > 45 and self.humidity < 70:
-            return 1
-
         # Dry?
-        if self.humidity <= 45:
+        if self.humidity <= 30:
             return 2
 
         # Wet?
         if self.humidity >= 70:
             return 3
 
-        # Normal (just in case)
+        # Comfortable?
+        if self.humidity >= 35 and self.humidity =< 65:
+            if self.temperature != None:
+                if self.temperature >= 22 and self.temperature <= 26:
+                    return 1
+
+        # Normal
         return 0
 
     #
