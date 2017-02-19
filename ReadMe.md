@@ -6,7 +6,7 @@ Short summary
 -------------
 
 This is a virtual hardware plugin to add weather information from [Buienradar.nl](https://www.buienradar.nl/)
-to your Domoticz interface.
+to your [Domoticz](https://www.domoticz.com/) interface.
 
 It gets the xml weather feed from http://xml.buienradar.nl, finds the
 weather station nearby your location and add the relevant weather information
@@ -24,7 +24,7 @@ or AccuWeather plugin?
 
 **A:** Because I can, because it is much easier for Dutch users (no need to setup or
 register an API key, etc), because I want to learn how to extend my Domoticz,
-because I want to learn Python, because it is fun.
+because I improve my Python skills, because it is fun.
 
 
 Installation and setup
@@ -37,11 +37,23 @@ install libpython3.4 for plugins to work.
 sudo apt install libpython3.4
 ```
 
+At the moment of writing you also need to install:
+
+```bash
+sudo apt install python3-dev
+```
+
 In your `domoticz/plugins` directory do
 
 ```bash
-git clone https://github.com/ffes/domoticz-buienradar
+git clone https://github.com/ffes/domoticz-buienradar.git
 ```
+
+Alternatively you can download the latest version from
+https://github.com/ffes/domoticz-buienradar/archive/master.zip
+and unzip it. Then create a directory on your Domoticz device
+in `domoticz/plugins` named `buienradar` and transfer all the
+files to your device.
 
 Restart your Domoticz service with:
 
@@ -50,21 +62,35 @@ sudo service domoticz.sh restart
 ```
 
 Now go to **Setup**, **Hardware** in your Domoticz interface. There you add
-"Buienradar.nl (Weather lookup)".
+**Buienradar.nl (Weather lookup)**.
 
-Enter the latitude and longitude for your location. I hope there is a decent
-way to get this information from your Domoticz settings, but I haven't found
-it yet.
+Enter the latitude and longitude for your location and make sure you
+enter all the required fields.
 
 In the log you should see the plugin coming to life, picking the weather
-station nearby and adding "Temperature" information to your interface.
+station nearby and adding the weather information to your interface.
 
 
-What works?
------------
+Known bugs
+----------
 
-At the moment only the temperature is shown in the interface. Other weather
-data is shown in the log, but not yet added to the interface.
+At the moment there is no way to determine the type of the devices
+from within the plugin. So when you want to change any of those
+settings you need to remove all the devices and restart Domoticz.
+The new devices will be added matching your settings.
+
+
+State of development
+--------------------
+
+With the current implementation of the Python plugin framework this
+plugin is feature complete. Only rain levels could be added.
+
+Two features in the plugin framework would be really great to have:
+* Get the latitude and longitude from the Domoticz settings.
+* Get the TypeName of the plugins devices. With that it would be
+  possible to determine if new devices need to be created when
+  the user changes one of the selections on the hardware page.
 
 
 Developing the plugin
