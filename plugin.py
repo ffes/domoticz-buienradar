@@ -12,6 +12,7 @@
     <params>
         <param field="Mode1" label="Latitude" width="200px" required="true" default=""/>
         <param field="Mode2" label="Longitude" width="200px" required="true" default=""/>
+        <param field="Mode3" label="Update every x minutes" width="200px" required="true" default="15"/>
     </params>
 </plugin>
 """
@@ -48,6 +49,18 @@ def onStart():
         Domoticz.Log("Unable to parse coordinate")
         return False
 
+    # Get the interval specified by the user
+    interval = br.parseIntValue(Parameters["Mode3"])
+    if interval == None:
+        Domoticz.Log("Unable to parse interval")
+        return False
+
+    # Buienradar only updates the info every 10 minutes.
+    # Allowing values below 10 minutes will not get you more info
+    if interval < 10:
+        Domoticz.Log("Interval too small")
+        return False
+
     br.getBuienradarXML()
     br.getNearbyWeatherStation(myLat, myLon)
 
@@ -58,8 +71,10 @@ def onStart():
 
 def onHeartbeat():
 
+    interval = br.parseFloatValue(Parameters["Mode3"])
+
     # Does the weather information needs to be updated?
-    if br.needUpdate(15):
+    if br.needUpdate(interval):
 
         # Get new information and update the devices
         br.getBuienradarXML()
