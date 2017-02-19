@@ -8,7 +8,7 @@
 #   https://www.buienradar.nl/overbuienradar/gratis-weerdata
 #
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0.1" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
         <param field="Mode1" label="Latitude" width="200px" required="true" default=""/>
         <param field="Mode2" label="Longitude" width="200px" required="true" default=""/>
@@ -169,31 +169,37 @@ def fillDevices():
     if br.getWeather():
 
         # Temperature
-        UpdateDevice(1, 0, str(round(br.temperature, 1)))
+        if br.temperature != None:
+            UpdateDevice(1, 0, str(round(br.temperature, 1)))
 
         # Humidity
-        UpdateDevice(2, br.humidity, str(br.getHumidityStatus()))
+        if br.humidity != None:
+            UpdateDevice(2, br.humidity, str(br.getHumidityStatus()))
 
         # Temperature and Humidity
-        UpdateDevice(3, 0,
+        if br.temperature != None and br.humidity != None:
+            UpdateDevice(3, 0,
                     str(round(br.temperature, 1))
                     + ";" + str(br.humidity)
                     + ";" + str(br.getHumidityStatus()))
 
         # Barometer
-        UpdateDevice(4, 0,
+        if br.pressure != None:
+            UpdateDevice(4, 0,
                     str(round(br.pressure, 1))
                     + ";" + str(br.getBarometerForecast()))
 
         # Wind
-        UpdateDevice(5, 0, str(br.windBearing)
+        if br.windBearing != None and br.windSpeed != None and br.windSpeedGusts != None:
+
+            UpdateDevice(5, 0, str(br.windBearing)
                     + ";" + br.getWindDirection()
                     + ";" + str(round(br.windSpeed * 10))
                     + ";" + str(round(br.windSpeedGusts * 10))
                     + ";0;0")
 
-        # Wind and Wind Chill
-        UpdateDevice(6, 0, str(br.windBearing)
+            # Wind and Wind Chill
+            UpdateDevice(6, 0, str(br.windBearing)
                     + ";" + br.getWindDirection()
                     + ";" + str(round(br.windSpeed * 10))
                     + ";" + str(round(br.windSpeedGusts * 10))
