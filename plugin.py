@@ -41,8 +41,12 @@ def onStart():
     #DumpConfigToLog()
 
     # This information should come from domoticz!!!
-    myLat = float(Parameters["Mode1"])
-    myLon = float(Parameters["Mode2"])
+    myLat = br.parseFloatValue(Parameters["Mode1"])
+    myLon = br.parseFloatValue(Parameters["Mode2"])
+
+    if myLat == None or myLat == None:
+        Domoticz.Log("Unable to parse coordinate")
+        return False
 
     br.getBuienradarXML()
     br.getNearbyWeatherStation(myLat, myLon)
