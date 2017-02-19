@@ -13,6 +13,18 @@
         <param field="Mode1" label="Latitude" width="200px" required="true" default=""/>
         <param field="Mode2" label="Longitude" width="200px" required="true" default=""/>
         <param field="Mode3" label="Update every x minutes" width="200px" required="true" default="15"/>
+        <param field="Mode4" label="Temperature and humidity" width="200px" required="true">
+            <options>
+                <option label="Combined in one device" value="True" default="true" />
+                <option label="Two separate devices" value="False" />
+            </options>
+        </param>
+        <param field="Mode5" label="Include Wind chill in Wind device" width="200px" required="true">
+            <options>
+                <option label="Yes" value="True" default="true" />
+                <option label="No" value="False"/>
+            </options>
+        </param>
     </params>
 </plugin>
 """
@@ -112,7 +124,8 @@ def DumpConfigToLog():
 
 def UpdateDevice(Unit, nValue, sValue):
 
-    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
+    # Make sure that the Domoticz device still exists before updating it.
+    # It can be deleted or never created!
     if (Unit in Devices):
 
         Devices[Unit].Update(nValue, str(sValue))
@@ -129,16 +142,58 @@ def createDevices():
         # Could be the user deleted some devices, so do nothing
         return
 
-    Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
-    Domoticz.Device(Name="Wind", Unit=2, TypeName="Wind+Temp+Chill").Create()
+    # Give the devices a unique unit number. This makes updating them more easy.
+    # UpdateDevice() checks if the device exists before trying to update it.
+
+    # Add the temperature and humidity device(s)
+    if Parameters["Mode4"] == "True":
+        Domoticz.Device(Name="Temperature", Unit=3, TypeName="Temp+Hum").Create()
+    else:
+        Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
+        Domoticz.Device(Name="Humidity", Unit=2, TypeName="Humidity").Create()
+
+    # Add the barometer device
+    Domoticz.Device(Name="Barometer", Unit=4, TypeName="Barometer").Create()
+
+    # Add the wind (and wind chill?) device
+    if Parameters["Mode5"] == "True":
+        Domoticz.Device(Name="Wind", Unit=6, TypeName="Wind+Temp+Chill").Create()
+    else:
+        Domoticz.Device(Name="Wind", Unit=5, TypeName="Wind").Create()
+
     Domoticz.Log("Devices created.")
 
 def fillDevices():
 
+    # Did we get new weather info? Update all the possible devices
     if br.getWeather():
 
-        UpdateDevice(1, 0, str(br.temperature))
-        UpdateDevice(2, 0, str(br.windBearing)
+        # Temperature
+        UpdateDevice(1, 0, str(round(br.temperature, 1)))
+
+        # Humidity
+        UpdateDevice(2, br.humidity, str(br.getHumidityStatus()))
+
+        # Temperature and Humidity
+        UpdateDevice(3, 0,
+                    str(round(br.temperature, 1))
+                    + ";" + str(br.humidity)
+                    + ";" + str(br.getHumidityStatus()))
+
+        # Barometer
+        UpdateDevice(4, 0,
+                    str(round(br.pressure, 1))
+                    + ";" + str(br.getBarometerForecast()))
+
+        # Wind
+        UpdateDevice(5, 0, str(br.windBearing)
+                    + ";" + br.getWindDirection()
+                    + ";" + str(round(br.windSpeed * 10))
+                    + ";" + str(round(br.windSpeedGusts * 10))
+                    + ";0;0")
+
+        # Wind and Wind Chill
+        UpdateDevice(6, 0, str(br.windBearing)
                     + ";" + br.getWindDirection()
                     + ";" + str(round(br.windSpeed * 10))
                     + ";" + str(round(br.windSpeedGusts * 10))
