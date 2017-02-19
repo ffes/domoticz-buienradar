@@ -290,7 +290,7 @@ class Buienradar:
             return 3
 
         # Comfortable?
-        if self.humidity >= 35 and self.humidity =< 65:
+        if self.humidity >= 35 and self.humidity <= 65:
             if self.temperature != None:
                 if self.temperature >= 22 and self.temperature <= 26:
                     return 1
