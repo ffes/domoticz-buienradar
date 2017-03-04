@@ -10,8 +10,6 @@
 """
 <plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0.1" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
-        <param field="Mode1" label="Latitude" width="200px" required="true" default=""/>
-        <param field="Mode2" label="Longitude" width="200px" required="true" default=""/>
         <param field="Mode3" label="Update every x minutes" width="200px" required="true" default="15"/>
         <param field="Mode4" label="Temperature and humidity" width="200px" required="true">
             <options>
@@ -53,12 +51,18 @@ def onStart():
     #DumpConfigToDebug()
     #DumpConfigToLog()
 
-    # This information should come from domoticz!!!
-    myLat = br.parseFloatValue(Parameters["Mode1"])
-    myLon = br.parseFloatValue(Parameters["Mode2"])
+    # Get the location from the Settings
+    if not "Location" in Settings:
+        Domoticz.Log("Location not set in Preferences")
+        return False
 
-    if myLat == None or myLat == None:
-        Domoticz.Log("Unable to parse coordinate")
+    # The location is stored in a string in the Settings
+    loc = Settings["Location"].split(";")
+    myLat = br.parseFloatValue(loc[0])
+    myLon = br.parseFloatValue(loc[1])
+
+    if myLat == None or myLon == None:
+        Domoticz.Log("Unable to parse coordinates")
         return False
 
     # Get the interval specified by the user
