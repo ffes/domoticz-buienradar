@@ -14,6 +14,8 @@ to your Domoticz interface.
 
 Since it uses buienradar.nl it only works for locations in The Netherlands.
 
+This plugin is open source and it can be found at https://github.com/ffes/domoticz-buienradar/
+
 
 Why yet another weather plugin?
 -------------------------------
@@ -46,6 +48,7 @@ sudo apt install python3-dev
 In your `domoticz/plugins` directory do
 
 ```bash
+cd domoticz/plugins
 git clone https://github.com/ffes/domoticz-buienradar.git
 ```
 
@@ -64,8 +67,7 @@ sudo service domoticz.sh restart
 Now go to **Setup**, **Hardware** in your Domoticz interface. There you add
 **Buienradar.nl (Weather lookup)**.
 
-Enter the latitude and longitude for your location and make sure you
-enter all the required fields.
+Make sure you enter all the required fields.
 
 In the log you should see the plugin coming to life, picking the weather
 station nearby and adding the weather information to your interface.
@@ -79,15 +81,17 @@ from within the plugin. So when you want to change any of those
 settings you need to remove all the devices and restart Domoticz.
 The new devices will be added matching your settings.
 
+Other then that use [GitHub Issues](https://github.com/ffes/domoticz-buienradar/issues)
+for feature request or bug reports.
+
 
 State of development
 --------------------
 
 With the current implementation of the Python plugin framework this
-plugin is feature complete. Only rain levels could be added.
+plugin is quiet feature complete. Only rain levels could be added.
 
-Two features in the plugin framework would be really great to have:
-* Get the latitude and longitude from the Domoticz settings.
+A useful features in the plugin framework to have would be:
 * Get the TypeName of the plugins devices. With that it would be
   possible to determine if new devices need to be created when
   the user changes one of the selections on the hardware page.

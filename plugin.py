@@ -8,7 +8,7 @@
 #   https://www.buienradar.nl/overbuienradar/gratis-weerdata
 #
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.0.1" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.1.0" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
         <param field="Mode3" label="Update every x minutes" width="200px" required="true" default="15"/>
         <param field="Mode4" label="Temperature and humidity" width="200px" required="true">
