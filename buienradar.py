@@ -75,7 +75,12 @@ class Buienradar:
             Domoticz.Log("HTTP error: " + str(e) + " URL: " + url)
             return
 
-        self.tree = ET.parse(xml)
+        try:
+             self.tree = ET.parse(xml)
+        except ET.ParseError as err:
+             Domoticz.Log("XML parsing error: " + err)
+             return
+
         self.lastUpdate = datetime.now()
 
     #
