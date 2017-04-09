@@ -71,7 +71,7 @@ class Buienradar:
         try:
             Domoticz.Log('Retrieve weather data from ' + url)
             xml = urllib.request.urlopen(url, data=None)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             Domoticz.Log("HTTP error: " + str(e) + " URL: " + url)
             return
 
