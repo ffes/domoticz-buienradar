@@ -36,6 +36,8 @@ class Buienradar:
         self.windSpeedGusts = None          # m/s
         self.pressure = None                # hPa
         self.humidity = None                # percentage
+        self.visibility = None              # meters
+        self.solarIrradiance = None         # W/m2
 
     #
     # Calculate the great circle distance between two points
@@ -323,10 +325,6 @@ class Buienradar:
         # Get the weather information from the station
         for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
 
-            # regenMMPU
-            # zichtmeters
-            # zonintensiteitWM2
-
             #self.observationDate = datetime.strptime(station.find('datum').text, '%m/%d/%Y %H:%M:%S')
             self.temperature = self.parseFloatValue(station.find('temperatuurGC').text)
             self.windSpeed = self.parseFloatValue(station.find('windsnelheidMS').text)
@@ -334,6 +332,8 @@ class Buienradar:
             self.windSpeedGusts = self.parseFloatValue(station.find('windstotenMS').text)
             self.pressure = self.parseFloatValue(station.find('luchtdruk').text)
             self.humidity = self.parseIntValue(station.find('luchtvochtigheid').text)
+            self.visibility = self.parseIntValue(station.find('zichtmeters').text)
+            self.solarIrradiance = self.parseFloatValue(station.find('zonintensiteitWM2').text)
 
             #Domoticz.Log("Observation: " + str(self.observationDate))
             Domoticz.Log("Temperature: " + str(self.temperature))
@@ -346,6 +346,8 @@ class Buienradar:
             Domoticz.Log("Barometer Forecast: " + str(self.getBarometerForecast()))
             Domoticz.Log("Humidity: " + str(self.humidity))
             Domoticz.Log("Humidity status: " + str(self.getHumidityStatus()))
+            Domoticz.Log("Visibility: " + str(self.visibility))
+            Domoticz.Log("Solar Irradiance: " + str(self.solarIrradiance))
 
             self.lastUpdate = datetime.now()
 
