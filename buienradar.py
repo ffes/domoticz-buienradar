@@ -128,7 +128,7 @@ class Buienradar:
 
         # Check if location is outside of The Netherlands
         if distance > 100:
-            Domoticz.Log("Too far away...")
+            Domoticz.Log("Your location (" + str(myLat) + "," +  str(myLon) + ") is too far away...")
             Domoticz.Log("This plugin only works for locations within The Netherlands")
             self.stationID = ""
 
