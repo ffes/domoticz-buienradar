@@ -7,10 +7,15 @@
 #   About the weather service:
 #   https://www.buienradar.nl/overbuienradar/gratis-weerdata
 #
+#   Updates by G3rard, August 2017
+#   Rain rate, Visibility, Solar Radiation, Rain forecast and Weather forecast added and some minor changes
+#   Rain prediction from Rainfuture script by gerardvs - https://github.com/seventer/raintocome and Buienradar script from mjj4791 - https://github.com/mjj4791/python-buienradar
+#
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="1.1.0" wikilink="" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.0" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
-        <param field="Mode3" label="Update every x minutes" width="200px" required="true" default="15"/>
+        <param field="Mode2" label="Update every x minutes" width="200px" required="true" default="10"/>
+        <param field="Mode3" label="Rain forecast timeframe in minutes" width="200px" required="true" default="30"/>
         <param field="Mode4" label="Temperature and humidity" width="200px" required="true">
             <options>
                 <option label="Combined in one device" value="True" default="true" />
@@ -21,6 +26,13 @@
             <options>
                 <option label="Yes" value="True" default="true" />
                 <option label="No" value="False"/>
+            </options>
+        </param>
+        <param field="Mode6" label="Debug" width="100px">
+            <options>
+                <option label="True" value="Debug"/>
+                <option label="False" value="Normal" default="true" />
+                <option label="Logging" value="File"/>
             </options>
         </param>
     </params>
@@ -38,102 +50,132 @@ import xml.etree.ElementTree as ET
 from math import radians, cos, sin, asin, sqrt
 from datetime import datetime, timedelta
 from buienradar import Buienradar
-
-br = Buienradar()
+from rainforecast import RainForecast
 
 #############################################################################
 #                      Domoticz call back functions                         #
 #############################################################################
+class BasePlugin:
+    myLat = myLon = 0
+    br = rf = None
+    interval = timeframe = None
 
-def onStart():
+    def onStart(self):
+        #pylint: disable=undefined-variable
+        global br, rf
 
-    createDevices()
-    #DumpConfigToDebug()
-    #DumpConfigToLog()
+        if Parameters["Mode6"] != "Normal":
+            Domoticz.Debugging(1)
+            DumpConfigToLog()
 
-    # Get the location from the Settings
-    if not "Location" in Settings:
-        Domoticz.Log("Location not set in Preferences")
-        return False
+        # Get the location from the Settings
+        if not "Location" in Settings:
+            Domoticz.Log("Location not set in Preferences")
+            return False
+        
+        # The location is stored in a string in the Settings
+        loc = Settings["Location"].split(";")
+        self.myLat = float(loc[0])
+        self.myLon = float(loc[1])
+        Domoticz.Debug("Coordinates from Domoticz: " + str(self.myLat) + ";" + str(self.myLon))
 
-    # The location is stored in a string in the Settings
-    loc = Settings["Location"].split(";")
-    myLat = br.parseFloatValue(loc[0])
-    myLon = br.parseFloatValue(loc[1])
+        if self.myLat == None or self.myLon == None:
+            Domoticz.Log("Unable to parse coordinates")
+            return False
 
-    if myLat == None or myLon == None:
-        Domoticz.Log("Unable to parse coordinates")
-        return False
+        # Get the interval specified by the user
+        self.interval = int(Parameters["Mode2"])
+        if self.interval == None:
+            Domoticz.Log("Unable to parse interval, so set it to 10 minutes")
+            self.interval = 10
 
-    # Get the interval specified by the user
-    interval = br.parseIntValue(Parameters["Mode3"])
-    if interval == None:
-        Domoticz.Log("Unable to parse interval")
-        return False
+        # Buienradar only updates the info every 10 minutes.
+        # Allowing values below 10 minutes will not get you more info
+        if self.interval < 10:
+            Domoticz.Log("Interval too small, changed to 10 minutes because Buienradar only updates the info every 10 minutes")
+            self.interval = 10
 
-    # Buienradar only updates the info every 10 minutes.
-    # Allowing values below 10 minutes will not get you more info
-    if interval < 10:
-        Domoticz.Log("Interval too small")
-        return False
+        # Get the timeframe for the rain forecast
+        self.timeframe = int(Parameters["Mode3"])
+        if self.timeframe == None:
+            Domoticz.Log("Unable to parse timeframe, set to 30 minutes")
+            self.timeframe = 30
+        if self.timeframe < 5 or self.timeframe > 120:
+            Domoticz.Log("Timeframe must be >=5 and <=120. Now set to 30 minutes")
+            self.timeframe = 30
 
-    br.getBuienradarXML()
-    br.getNearbyWeatherStation(myLat, myLon)
+        br = Buienradar(self.myLat, self.myLon, self.interval)
+        rf = RainForecast(self.myLat, self.myLon, self.timeframe)
 
-    fillDevices()
+        # Check if devices need to be created
+        createDevices()
 
-    Domoticz.Heartbeat(30)
-    return True
+        # Check if images are in database
+        if 'BuienradarRainLogo' not in Images: Domoticz.Image('buienradar.zip').Create()
+        if 'BuienradarLogo' not in Images: Domoticz.Image('buienradar-logo.zip').Create()
 
-def onHeartbeat():
-
-    interval = br.parseFloatValue(Parameters["Mode3"])
-
-    # Does the weather information needs to be updated?
-    if br.needUpdate(interval):
-
-        # Get new information and update the devices
+        # Get data from Buienradar
         br.getBuienradarXML()
+        br.getNearbyWeatherStation()
+
+        # Fill the devices with the Buienradar values
         fillDevices()
 
-    return True
+        Domoticz.Heartbeat(30)
+        return True
+
+    def onHeartbeat(self):
+
+        # Does the weather information needs to be updated?
+        if br.needUpdate():
+            # Get new information and update the devices
+            br.getBuienradarXML()
+            fillDevices()
+
+        return True
+
+_plugin = BasePlugin()
+
+def onStart():
+    _plugin.onStart()
+
+def onHeartbeat():
+    _plugin.onHeartbeat()
 
 #############################################################################
 #                         Domoticz helper functions                         #
 #############################################################################
 
-def DumpConfigToDebug():
-    for x in Parameters:
-        if Parameters[x] != "":
-            Domoticz.Debug("'" + x + "':'" + str(Parameters[x]) + "'")
-    Domoticz.Debug("Device count: " + str(len(Devices)))
-    for x in Devices:
-        Domoticz.Debug("Device:           " + str(x) + " - " + str(Devices[x]))
-        Domoticz.Debug("Device ID:       '" + str(Devices[x].ID) + "'")
-        Domoticz.Debug("Device Name:     '" + Devices[x].Name + "'")
-        Domoticz.Debug("Device nValue:    " + str(Devices[x].nValue))
-        Domoticz.Debug("Device sValue:   '" + Devices[x].sValue + "'")
+def LogMessage(Message):
+    if Parameters["Mode6"] == "File":
+        f = open(Parameters["HomeFolder"] + "plugin.log", "a")
+        f.write(Message + "\r\n")
+        f.close()
+    Domoticz.Debug(Message)
 
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
-            Domoticz.Log("'" + x + "':'" + str(Parameters[x]) + "'")
-    Domoticz.Log("Device count: " + str(len(Devices)))
+            LogMessage( "'" + x + "':'" + str(Parameters[x]) + "'")
+    LogMessage("Device count: " + str(len(Devices)))
     for x in Devices:
-        Domoticz.Log("Device:           " + str(x) + " - " + str(Devices[x]))
-        Domoticz.Log("Device ID:       '" + str(Devices[x].ID) + "'")
-        Domoticz.Log("Device Name:     '" + Devices[x].Name + "'")
-        Domoticz.Log("Device nValue:    " + str(Devices[x].nValue))
-        Domoticz.Log("Device sValue:   '" + Devices[x].sValue + "'")
+        LogMessage("Device:           " + str(x) + " - " + str(Devices[x]))
+        LogMessage("Internal ID:     '" + str(Devices[x].ID) + "'")
+        LogMessage("External ID:     '" + str(Devices[x].DeviceID) + "'")
+        LogMessage("Device Name:     '" + Devices[x].Name + "'")
+        LogMessage("Device nValue:    " + str(Devices[x].nValue))
+        LogMessage("Device sValue:   '" + Devices[x].sValue + "'")
+        LogMessage("Device LastLevel: " + str(Devices[x].LastLevel))
+    return
 
-def UpdateDevice(Unit, nValue, sValue):
-
-    # Make sure that the Domoticz device still exists before updating it.
-    # It can be deleted or never created!
-    if (Unit in Devices):
-
-        Devices[Unit].Update(nValue, str(sValue))
-        Domoticz.Debug("Update " + str(nValue) + ":'" + str(sValue) + "' (" + Devices[Unit].Name + ")")
+# Update Device into database
+def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
+    # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
+    if Unit in Devices:
+        if Devices[Unit].nValue != nValue or Devices[Unit].sValue != sValue or AlwaysUpdate == True:
+            Devices[Unit].Update(nValue, str(sValue))
+            Domoticz.Log("Update " + Devices[Unit].Name + ": " + str(nValue) + " - '" + str(sValue) + "'")
+    return
 
 #############################################################################
 #                       Device specific functions                           #
@@ -142,66 +184,86 @@ def UpdateDevice(Unit, nValue, sValue):
 def createDevices():
 
     # Are there any devices?
-    if len(Devices) != 0:
+    ###if len(Devices) != 0:
         # Could be the user deleted some devices, so do nothing
-        return
+        ###return
 
     # Give the devices a unique unit number. This makes updating them more easy.
     # UpdateDevice() checks if the device exists before trying to update it.
 
     # Add the temperature and humidity device(s)
     if Parameters["Mode4"] == "True":
-        Domoticz.Device(Name="Temperature", Unit=3, TypeName="Temp+Hum").Create()
+        if 3 not in Devices:
+            Domoticz.Device(Name="Temperature", Unit=3, TypeName="Temp+Hum", Used=1).Create()
     else:
-        Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature").Create()
-        Domoticz.Device(Name="Humidity", Unit=2, TypeName="Humidity").Create()
+        if 1 and 2 not in Devices:
+            Domoticz.Device(Name="Temperature", Unit=1, TypeName="Temperature", Used=1).Create()
+            Domoticz.Device(Name="Humidity", Unit=2, TypeName="Humidity", Used=1).Create()
 
     # Add the barometer device
-    Domoticz.Device(Name="Barometer", Unit=4, TypeName="Barometer").Create()
+    if 4 not in Devices:
+        Domoticz.Device(Name="Barometer", Unit=4, TypeName="Barometer", Used=1).Create()
 
     # Add the wind (and wind chill?) device
     if Parameters["Mode5"] == "True":
-        Domoticz.Device(Name="Wind", Unit=6, TypeName="Wind+Temp+Chill").Create()
+        if 6 not in Devices:
+            Domoticz.Device(Name="Wind", Unit=6, TypeName="Wind+Temp+Chill", Used=1).Create()
     else:
-        Domoticz.Device(Name="Wind", Unit=5, TypeName="Wind").Create()
+        if 5 not in Devices:
+            Domoticz.Device(Name="Wind", Unit=5, TypeName="Wind", Used=1).Create()
 
-    Domoticz.Log("Devices created.")
+    if 7 not in Devices:
+        Domoticz.Device(Name="Visibility", Unit=7, TypeName="Visibility", Used=1).Create()
+    if 8 not in Devices:
+        Domoticz.Device(Name="Solar Radiation", Unit=8, TypeName="Solar Radiation", Used=1).Create()
+    if 9 not in Devices:
+        Domoticz.Device(Name="Rain rate", Unit=9, TypeName="Custom", Options = { "Custom" : "1;mm/h"}, Used=1).Create()
+        UpdateImage(9, 'BuienradarRainLogo')
+    if 10 not in Devices:
+        Domoticz.Device(Name="Rain forecast [0-255]", Unit=10, TypeName="Custom", Used=1).Create()
+        UpdateImage(10, 'BuienradarRainLogo')
+    if 11 not in Devices:
+        Domoticz.Device(Name="Rain forecast", Unit=11, TypeName="Custom", Options = { "Custom" : "1;mm/h"}, Used=1).Create()
+        UpdateImage(11, 'BuienradarRainLogo')
+    if 12 not in Devices:
+        Domoticz.Device(Name="Weather forecast", Unit=12, TypeName="Text", Used=1).Create()
+        #UpdateImage(12, 'BuienradarLogo') # Logo update doesn't work for text device 
+
+    Domoticz.Log("Devices checked and created/updated if necessary")
 
 def fillDevices():
 
     # Did we get new weather info? Update all the possible devices
     if br.getWeather():
-
+        
         # Temperature
         if br.temperature != None:
             UpdateDevice(1, 0, str(round(br.temperature, 1)))
-
+        
         # Humidity
         if br.humidity != None:
             UpdateDevice(2, br.humidity, str(br.getHumidityStatus()))
-
+        
         # Temperature and Humidity
         if br.temperature != None and br.humidity != None:
             UpdateDevice(3, 0,
                     str(round(br.temperature, 1))
                     + ";" + str(br.humidity)
                     + ";" + str(br.getHumidityStatus()))
-
+        
         # Barometer
         if br.pressure != None:
             UpdateDevice(4, 0,
                     str(round(br.pressure, 1))
                     + ";" + str(br.getBarometerForecast()))
-
+        
         # Wind
         if br.windBearing != None and br.windSpeed != None and br.windSpeedGusts != None:
-
             UpdateDevice(5, 0, str(br.windBearing)
                     + ";" + br.getWindDirection()
                     + ";" + str(round(br.windSpeed * 10))
                     + ";" + str(round(br.windSpeedGusts * 10))
                     + ";0;0")
-
             # Wind and Wind Chill
             UpdateDevice(6, 0, str(br.windBearing)
                     + ";" + br.getWindDirection()
@@ -209,3 +271,31 @@ def fillDevices():
                     + ";" + str(round(br.windSpeedGusts * 10))
                     + ";" + str(round(br.temperature, 1))
                     + ";" + str(br.getWindChill()))
+        
+        # Visibility
+        if br.visibility != None:
+            UpdateDevice(7, 0, str(round((br.visibility/1000), 1))) # Visibility is m in Buienradar and km in Domoticz
+        
+        # Solar Radiation
+        if br.solarIrradiance != None:
+            UpdateDevice(8, 0, str(br.solarIrradiance))
+        
+        # Rain rate
+        if br.rainRate == None: br.rainRate = 0
+        UpdateDevice(9, 0, str(br.rainRate))
+        
+        # Rain forecast
+        result = rf.get_precipfc_data() ###30 nog nakijken
+        UpdateDevice(10, 0, str(result['average']))
+        UpdateDevice(11, 0, str(result['averagemm']))
+
+        if br.weatherForecast != None:
+            UpdateDevice(12, 0, str(br.weatherForecast))
+
+# Synchronise images to match parameter in hardware page
+def UpdateImage(Unit, Logo):
+    if Unit in Devices and Logo in Images:
+        if Devices[Unit].Image != Images[Logo].ID:
+            Domoticz.Log("Device Image update: 'Buienradar', Currently " + str(Devices[Unit].Image) + ", should be " + str(Images[Logo].ID))
+            Devices[Unit].Update(nValue=Devices[Unit].nValue, sValue=str(Devices[Unit].sValue), Image=Images[Logo].ID)
+    return

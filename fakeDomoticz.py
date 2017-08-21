@@ -12,7 +12,10 @@
 #
 
 def Log(s):
-	print(s)
+    print(s)
 
 def Debug(s):
-	print(s)
+    print(s)
+
+def Error(s):
+    print(s)

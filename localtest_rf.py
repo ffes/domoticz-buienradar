@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 #
 #   Buienradar.nl Weather Lookup Plugin
 #
@@ -10,9 +10,9 @@
 #
 
 import os
-from buienradar import Buienradar
+from rainforecast import RainForecast
 
-interval = 10
+timeframe = 30
 # Den Haag
 lat_dh = 52.095556
 lon_dh = 4.316389
@@ -29,15 +29,15 @@ lon_cd = 3.408056
 lat_be = 52.516667
 lon_be = 13.416667
 
-x = Buienradar(lat_so, lon_so, interval)
+rf = RainForecast(lat_dh, lon_dh, timeframe)
 
-xmlFile = './buienradar.xml'
+testFile = './raintext_remove.txt'
 
-if os.path.isfile(xmlFile):
-    x.getBuienradarXML(file = xmlFile)
+if os.path.isfile(testFile):
+    print('File found', testFile)
+    result = rf.get_precipfc_data(file = testFile)
+    print(result['average'], result['averagemm'])
 else:
-    x.getBuienradarXML()
-
-x.getNearbyWeatherStation()
-
-x.getWeather()
+    print('File', testFile, 'not found')
+    result = rf.get_precipfc_data()
+    print(result['average'], result['averagemm'])
