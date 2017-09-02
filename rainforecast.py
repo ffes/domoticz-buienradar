@@ -89,7 +89,7 @@ class RainForecast:
             result[self.AVERAGE] = math.ceil(totalrain / numberoflines)
             result[self.AVERAGEMM] = round((totalrainmm / numberoflines), 2)
         else:
-            Domoticz.Log("No data found from: " + self.url)
+            Domoticz.Log("No data found from Buienradar containing rain forecast, assuming rain forecast is 0)
             result[self.AVERAGE] = 0
             result[self.AVERAGEMM] = 0.0
         result[self.TOTAL] = round(totalrainmm/12, 2)
