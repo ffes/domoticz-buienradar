@@ -229,6 +229,10 @@ def createDevices():
         Domoticz.Device(Name="Weather forecast", Unit=12, TypeName="Text", Used=1).Create()
         #UpdateImage(12, 'BuienradarLogo') # Logo update doesn't work for text device 
 
+    if  9 in Devices: UpdateImage(9, 'BuienradarRainLogo')
+    if 10 in Devices: UpdateImage(10, 'BuienradarRainLogo')
+    if 11 in Devices: UpdateImage(11, 'BuienradarRainLogo')
+
     Domoticz.Log("Devices checked and created/updated if necessary")
 
 def fillDevices():

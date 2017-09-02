@@ -114,19 +114,18 @@ class Buienradar:
             Domoticz.Log('No XML file found, try again later')
             return
 
-        ### Check if XML contains weather stations
-        strData = str(self.tree)
-        if strData.find('weerstation') == 0:
-            Domoticz.Log('XML file contains no weather station information, try again later')
-            return
-        else:
-            Domoticz.Debug('XML file contains weather station information')
-
         # Start distance far away
         distance = 10000.0
 
         # Go through all the weather stations
         for stations in self.tree.iterfind('weergegevens/actueel_weer/weerstations'):
+
+            ### Check if XML contains weather stations
+            if stations.find('weerstation'):
+                Domoticz.Debug('XML file contains weather station information')
+            else:
+                Domoticz.Log('XML file contains no weather station information, try again later')
+                return
         
             for station in stations.findall('weerstation'):
 
