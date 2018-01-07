@@ -72,7 +72,7 @@ class BasePlugin:
         if not "Location" in Settings:
             Domoticz.Log("Location not set in Preferences")
             return False
-        
+
         # The location is stored in a string in the Settings
         loc = Settings["Location"].split(";")
         self.myLat = float(loc[0])
@@ -171,7 +171,7 @@ def DumpConfigToLog():
 
 # Update Device into database
 def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
-    # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
+    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
     if Unit in Devices:
         if Devices[Unit].nValue != nValue or Devices[Unit].sValue != sValue or AlwaysUpdate == True:
             Devices[Unit].Update(nValue, str(sValue))
@@ -228,7 +228,7 @@ def createDevices():
         UpdateImage(11, 'BuienradarRainLogo')
     if 12 not in Devices:
         Domoticz.Device(Name="Weather forecast", Unit=12, TypeName="Text", Used=1).Create()
-        #UpdateImage(12, 'BuienradarLogo') # Logo update doesn't work for text device 
+        #UpdateImage(12, 'BuienradarLogo') # Logo update doesn't work for text device
 
     if  9 in Devices: UpdateImage(9, 'BuienradarRainLogo')
     if 10 in Devices: UpdateImage(10, 'BuienradarRainLogo')
@@ -240,28 +240,28 @@ def fillDevices():
 
     # Did we get new weather info? Update all the possible devices
     if br.getWeather():
-        
+
         # Temperature
         if br.temperature != None:
             UpdateDevice(1, 0, str(round(br.temperature, 1)))
-        
+
         # Humidity
         if br.humidity != None:
             UpdateDevice(2, br.humidity, str(br.getHumidityStatus()))
-        
+
         # Temperature and Humidity
         if br.temperature != None and br.humidity != None:
             UpdateDevice(3, 0,
                     str(round(br.temperature, 1))
                     + ";" + str(br.humidity)
                     + ";" + str(br.getHumidityStatus()))
-        
+
         # Barometer
         if br.pressure != None:
             UpdateDevice(4, 0,
                     str(round(br.pressure, 1))
                     + ";" + str(br.getBarometerForecast()))
-        
+
         # Wind
         if br.windBearing != None and br.windSpeed != None and br.windSpeedGusts != None:
             UpdateDevice(5, 0, str(br.windBearing)
@@ -276,19 +276,19 @@ def fillDevices():
                     + ";" + str(round(br.windSpeedGusts * 10))
                     + ";" + str(round(br.temperature, 1))
                     + ";" + str(br.getWindChill()))
-        
+
         # Visibility
         if br.visibility != None:
             UpdateDevice(7, 0, str(round((br.visibility/1000), 1))) # Visibility is m in Buienradar and km in Domoticz
-        
+
         # Solar Radiation
         if br.solarIrradiance != None:
             UpdateDevice(8, 0, str(br.solarIrradiance))
-        
+
         # Rain rate
         if br.rainRate == None: br.rainRate = 0
         UpdateDevice(9, 0, str(br.rainRate))
-        
+
         # Rain forecast
         result = rf.get_precipfc_data() ###30 nog nakijken
         UpdateDevice(10, 0, str(result['average']))
