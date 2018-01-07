@@ -127,6 +127,7 @@ class BasePlugin:
     def onHeartbeat(self):
 
         # Does the weather information needs to be updated?
+        global br
         if br.needUpdate():
             # Get new information and update the devices
             br.getBuienradarXML()
