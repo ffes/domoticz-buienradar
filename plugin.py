@@ -63,6 +63,7 @@ class BasePlugin:
     def onStart(self):
         #pylint: disable=undefined-variable
         global br, rf
+        self.Error=False
 
         if Parameters["Mode6"] != "Normal":
             Domoticz.Debugging(1)
@@ -70,7 +71,8 @@ class BasePlugin:
 
         # Get the location from the Settings
         if not "Location" in Settings:
-            Domoticz.Log("Location not set in Preferences")
+            self.Error="Location not set in Settings, please update your settings."
+            Domoticz.Error(self.Error)
             return False
 
         # The location is stored in a string in the Settings
@@ -125,15 +127,17 @@ class BasePlugin:
         return True
 
     def onHeartbeat(self):
+        if self.Error==False:
+            # Does the weather information needs to be updated?
+            global br
+            if br.needUpdate():
+                # Get new information and update the devices
+                br.getBuienradarXML()
+                fillDevices()
 
-        # Does the weather information needs to be updated?
-        global br
-        if br.needUpdate():
-            # Get new information and update the devices
-            br.getBuienradarXML()
-            fillDevices()
-
-        return True
+            return True
+        else:
+            Domoticz.Error(self.Error)
 
 _plugin = BasePlugin()
 
