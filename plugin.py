@@ -12,7 +12,7 @@
 #   Rain prediction from Rainfuture script by gerardvs - https://github.com/seventer/raintocome and Buienradar script from mjj4791 - https://github.com/mjj4791/python-buienradar
 #
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.0" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.1" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
         <param field="Mode2" label="Update every x minutes" width="200px" required="true" default="10"/>
         <param field="Mode3" label="Rain forecast timeframe in minutes" width="200px" required="true" default="30"/>
