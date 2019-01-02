@@ -71,60 +71,59 @@ class BasePlugin:
 
         # Get the location from the Settings
         if not "Location" in Settings:
-            self.Error="Location not set in Settings, please update your settings."
-            Domoticz.Error(self.Error)
-            return False
+        	self.Error="Location not set in Settings, please update your settings."
+        	Domoticz.Error(self.Error)
+        else:
 
-        # The location is stored in a string in the Settings
-        loc = Settings["Location"].split(";")
-        self.myLat = float(loc[0])
-        self.myLon = float(loc[1])
-        Domoticz.Debug("Coordinates from Domoticz: " + str(self.myLat) + ";" + str(self.myLon))
+	        # The location is stored in a string in the Settings
+	        loc = Settings["Location"].split(";")
+	        self.myLat = float(loc[0])
+	        self.myLon = float(loc[1])
+	        Domoticz.Debug("Coordinates from Domoticz: " + str(self.myLat) + ";" + str(self.myLon))
 
-        if self.myLat == None or self.myLon == None:
-            Domoticz.Log("Unable to parse coordinates")
-            return False
+	        if self.myLat == None or self.myLon == None:
+	            Domoticz.Log("Unable to parse coordinates")
+	            return False
 
-        # Get the interval specified by the user
-        self.interval = int(Parameters["Mode2"])
-        if self.interval == None:
-            Domoticz.Log("Unable to parse interval, so set it to 10 minutes")
-            self.interval = 10
+	        # Get the interval specified by the user
+	        self.interval = int(Parameters["Mode2"])
+	        if self.interval == None:
+	            Domoticz.Log("Unable to parse interval, so set it to 10 minutes")
+	            self.interval = 10
 
-        # Buienradar only updates the info every 10 minutes.
-        # Allowing values below 10 minutes will not get you more info
-        if self.interval < 10:
-            Domoticz.Log("Interval too small, changed to 10 minutes because Buienradar only updates the info every 10 minutes")
-            self.interval = 10
+	        # Buienradar only updates the info every 10 minutes.
+	        # Allowing values below 10 minutes will not get you more info
+	        if self.interval < 10:
+	            Domoticz.Log("Interval too small, changed to 10 minutes because Buienradar only updates the info every 10 minutes")
+	            self.interval = 10
 
-        # Get the timeframe for the rain forecast
-        self.timeframe = int(Parameters["Mode3"])
-        if self.timeframe == None:
-            Domoticz.Log("Unable to parse timeframe, set to 30 minutes")
-            self.timeframe = 30
-        if self.timeframe < 5 or self.timeframe > 120:
-            Domoticz.Log("Timeframe must be >=5 and <=120. Now set to 30 minutes")
-            self.timeframe = 30
+	        # Get the timeframe for the rain forecast
+	        self.timeframe = int(Parameters["Mode3"])
+	        if self.timeframe == None:
+	            Domoticz.Log("Unable to parse timeframe, set to 30 minutes")
+	            self.timeframe = 30
+	        if self.timeframe < 5 or self.timeframe > 120:
+	            Domoticz.Log("Timeframe must be >=5 and <=120. Now set to 30 minutes")
+	            self.timeframe = 30
 
-        br = Buienradar(self.myLat, self.myLon, self.interval)
-        rf = RainForecast(self.myLat, self.myLon, self.timeframe)
+	        br = Buienradar(self.myLat, self.myLon, self.interval)
+	        rf = RainForecast(self.myLat, self.myLon, self.timeframe)
 
-        # Check if devices need to be created
-        createDevices()
+	        # Check if devices need to be created
+	        createDevices()
 
-        # Check if images are in database
-        if 'BuienradarRainLogo' not in Images: Domoticz.Image('buienradar.zip').Create()
-        if 'BuienradarLogo' not in Images: Domoticz.Image('buienradar-logo.zip').Create()
+	        # Check if images are in database
+	        if 'BuienradarRainLogo' not in Images: Domoticz.Image('buienradar.zip').Create()
+	        if 'BuienradarLogo' not in Images: Domoticz.Image('buienradar-logo.zip').Create()
 
-        # Get data from Buienradar
-        br.getBuienradarXML()
-        br.getNearbyWeatherStation()
+	        # Get data from Buienradar
+	        br.getBuienradarXML()
+	        br.getNearbyWeatherStation()
 
-        # Fill the devices with the Buienradar values
-        fillDevices()
+	        # Fill the devices with the Buienradar values
+	        fillDevices()
 
-        Domoticz.Heartbeat(30)
-        return True
+	        Domoticz.Heartbeat(30)
 
     def onHeartbeat(self):
         if self.Error==False:
@@ -134,8 +133,6 @@ class BasePlugin:
                 # Get new information and update the devices
                 br.getBuienradarXML()
                 fillDevices()
-
-            return True
         else:
             Domoticz.Error(self.Error)
 
@@ -222,21 +219,11 @@ def createDevices():
     if 8 not in Devices:
         Domoticz.Device(Name="Solar Radiation", Unit=8, TypeName="Solar Radiation", Used=1).Create()
     if 9 not in Devices:
-        Domoticz.Device(Name="Rain rate", Unit=9, TypeName="Custom", Options = { "Custom" : "1;mm/h"}, Used=1).Create()
-        UpdateImage(9, 'BuienradarRainLogo')
+        Domoticz.Device(Name="Current Rain rate", Unit=9, TypeName="Rain", Used=1).Create()
     if 10 not in Devices:
-        Domoticz.Device(Name="Rain forecast [0-255]", Unit=10, TypeName="Custom", Used=1).Create()
-        UpdateImage(10, 'BuienradarRainLogo')
+        Domoticz.Device(Name="Rain forecast", Unit=10, TypeName="Rain", Used=1).Create()
     if 11 not in Devices:
-        Domoticz.Device(Name="Rain forecast", Unit=11, TypeName="Custom", Options = { "Custom" : "1;mm/h"}, Used=1).Create()
-        UpdateImage(11, 'BuienradarRainLogo')
-    if 12 not in Devices:
-        Domoticz.Device(Name="Weather forecast", Unit=12, TypeName="Text", Used=1).Create()
-        #UpdateImage(12, 'BuienradarLogo') # Logo update doesn't work for text device
-
-    if  9 in Devices: UpdateImage(9, 'BuienradarRainLogo')
-    if 10 in Devices: UpdateImage(10, 'BuienradarRainLogo')
-    if 11 in Devices: UpdateImage(11, 'BuienradarRainLogo')
+        Domoticz.Device(Name="Weather forecast", Unit=11, TypeName="Text", Used=1).Create()
 
     Domoticz.Log("Devices checked and created/updated if necessary")
 
@@ -291,15 +278,14 @@ def fillDevices():
 
         # Rain rate
         if br.rainRate == None: br.rainRate = 0
-        UpdateDevice(9, 0, str(br.rainRate))
+        UpdateDevice(9, 12, str(br.rainRate*100)+";"+str(0))
 
         # Rain forecast
         result = rf.get_precipfc_data() ###30 nog nakijken
-        UpdateDevice(10, 0, str(result['average']))
-        UpdateDevice(11, 0, str(result['averagemm']))
+        UpdateDevice(10, 0, str(result['averagemm']*100)+";"+str(result['average']))
 
         if br.weatherForecast != None:
-            UpdateDevice(12, 0, str(br.weatherForecast))
+            UpdateDevice(11, 0, str(br.weatherForecast))
 
 # Synchronise images to match parameter in hardware page
 def UpdateImage(Unit, Logo):
