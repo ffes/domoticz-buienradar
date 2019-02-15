@@ -32,19 +32,6 @@ because I improve my Python skills, because it is fun.
 Installation and setup
 ----------------------
 
-If you are use a Raspberry Pi to host your Domoticz, you probably need to
-install libpython3.4 for plugins to work.
-
-```bash
-sudo apt install libpython3.4
-```
-
-At the moment of writing you also need to install:
-
-```bash
-sudo apt install python3-dev
-```
-
 In your `domoticz/plugins` directory do
 
 ```bash
