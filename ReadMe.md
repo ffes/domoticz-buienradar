@@ -32,8 +32,6 @@ because I improve my Python skills, because it is fun.
 Installation and setup
 ----------------------
 
-In your `domoticz/plugins` directory do
-
 ```bash
 cd domoticz/plugins
 git clone https://github.com/ffes/domoticz-buienradar.git
