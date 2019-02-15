@@ -392,6 +392,8 @@ class Buienradar:
 
         for prediction in self.tree.iterfind('weergegevens/verwachting_vandaag'):
             self.weatherForecast = prediction.find('titel').text
+            if len(self.weatherForecast) > 200:
+                self.weatherForecast[0:200]
             self.weatherFCDateTime = prediction.find('tijdweerbericht').text
             Domoticz.Log("Weather prediction today: " + str(self.weatherForecast) + " (" + str(self.weatherFCDateTime) + ")")
             
