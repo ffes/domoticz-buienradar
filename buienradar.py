@@ -93,13 +93,11 @@ class Buienradar:
                 xml = urllib.request.urlopen(urlbackup, data=None)
             except (urllib.error.HTTPError, urllib.error.URLError) as e:
                 Domoticz.Error("Error: " + str(e) + " URL: " + urlbackup)
-                return
 
         try:
             self.tree = ET.parse(xml)
         except ET.ParseError as err:
-            Domoticz.Log("XML parsing error: " + err)
-            return
+            Domoticz.Log("XML parsing error: " + str(err))
 
         self.lastUpdate = datetime.now()
 
