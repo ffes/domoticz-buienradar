@@ -83,27 +83,27 @@ A useful features in the plugin framework to have would be:
 
 Change log
 ---------------------
-# v2.3 2019-02-19
+### v2.3 2019-02-19
 * Better error handling
 
-# v2.2 2019-02-15
+### v2.2 2019-02-15
 * Limit the wheater forecast device to 200 characters
 
-# v2 2019-01-02
+## v2 2019-01-02
 * Make use of rain devices instead of general text devices.
 * Show warning when location is not set in settings
 
-# v1.1.0, 2017-03-04
+### v1.1.0, 2017-03-04
 
 * Get the location from the Settings instead of asking the user
   This requires a newly implemented Setting dictionary in the
   Python interface.
 
-# v1.0.1, 2017-02-19
+### v1.0.1, 2017-02-19
 
 *  Make filling the devices more robust
 
-# v1.0.0, 2017-02-19
+## v1.0.0, 2017-02-19
 
 * First release
 
