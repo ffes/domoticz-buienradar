@@ -12,9 +12,9 @@
 #   Rain prediction from Rainfuture script by gerardvs - https://github.com/seventer/raintocome and Buienradar script from mjj4791 - https://github.com/mjj4791/python-buienradar
 #
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.3" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.4" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
-        <param field="Mode2" label="Update every x minutes" width="200px" required="true" default="10"/>
+        <param field="Mode2" label="Update every x minutes" width="200px" required="true" default="5"/>
         <param field="Mode3" label="Rain forecast timeframe in minutes" width="200px" required="true" default="30"/>
         <param field="Mode4" label="Temperature and humidity" width="200px" required="true">
             <options>
@@ -26,6 +26,12 @@
             <options>
                 <option label="Yes" value="True" default="true" />
                 <option label="No" value="False"/>
+            </options>
+        </param>
+        <param field="Mode1" label="Rainrate options" width="200px" required="true">
+            <options>
+                <option label="Maximum rainrate" value=True default="true" />
+                <option label="Average rainrate" value=False/>
             </options>
         </param>
         <param field="Mode6" label="Debug" width="100px">
@@ -65,6 +71,10 @@ class BasePlugin:
         global br, rf
         self.Error=False
 
+        self.ShowMax = Parameters["Mode1"]
+        if self.ShowMax == "" or self.ShowMax == "True":
+            self.ShowMax = True
+
         if Parameters["Mode6"] != "Normal":
             Domoticz.Debugging(1)
             DumpConfigToLog()
@@ -93,9 +103,9 @@ class BasePlugin:
 
 	        # Buienradar only updates the info every 10 minutes.
 	        # Allowing values below 10 minutes will not get you more info
-	        if self.interval < 10:
-	            Domoticz.Log("Interval too small, changed to 10 minutes because Buienradar only updates the info every 10 minutes")
-	            self.interval = 10
+	        if self.interval < 5:
+	            Domoticz.Log("Interval too small, changed to 5 minutes because Buienradar only updates the info every 5 minutes")
+	            self.interval = 5
 
 	        # Get the timeframe for the rain forecast
 	        self.timeframe = int(Parameters["Mode3"])
@@ -107,7 +117,7 @@ class BasePlugin:
 	            self.timeframe = 30
 
 	        br = Buienradar(self.myLat, self.myLon, self.interval)
-	        rf = RainForecast(self.myLat, self.myLon, self.timeframe)
+	        rf = RainForecast(self.myLat, self.myLon, self.timeframe, self.ShowMax)
 
 	        # Check if devices need to be created
 	        createDevices()
@@ -291,6 +301,6 @@ def fillDevices():
 def UpdateImage(Unit, Logo):
     if Unit in Devices and Logo in Images:
         if Devices[Unit].Image != Images[Logo].ID:
-            Domoticz.Log("Device Image update: 'Buienradar', Currently " + str(Devices[Unit].Image) + ", should be " + str(Images[Logo].ID))
+            #Domoticz.Log("Device Image update: 'Buienradar', Currently " + str(Devices[Unit].Image) + ", should be " + str(Images[Logo].ID))
             Devices[Unit].Update(nValue=Devices[Unit].nValue, sValue=str(Devices[Unit].sValue), Image=Images[Logo].ID)
     return
