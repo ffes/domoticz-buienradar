@@ -62,7 +62,6 @@ class RainForecast:
 
     def parse_precipfc_data(self):
         """Parse the forecasted precipitation data."""
-        global _plugin
         # Is the data available?
         if self.rainFile == None:
             Domoticz.Error("No correct data found from Buienradar site")
