@@ -15,18 +15,19 @@ import urllib.request
 
 class RainForecast:
 
-    def __init__(self, latitude=52.101547, longitude=5.177919, timeframe=30):
-        self.rainFile = None
-        self.url = None
-        self.urlbackup = None
-        self._lat = latitude
-        self._lon = longitude
-        self._timeframe = timeframe
+    def __init__(self, latitude=52.101547, longitude=5.177919, timeframe=30, showmax = True):
+        self.rainFile       = None
+        self.url            = None
+        self.urlbackup      = None
+        self._lat           = latitude
+        self._lon           = longitude
+        self._timeframe     = timeframe
         # keys in forcasted precipitation data
-        self.AVERAGE = 'average'
-        self.AVERAGEMM = 'averagemm'
-        self.TIMEFRAME = 'timeframe'
-        self.TOTAL = 'total'
+        self.AVERAGE        = 'average'
+        self.AVERAGEMM      = 'averagemm'
+        self.TIMEFRAME      = 'timeframe'
+        self.TOTAL          = 'total'
+        self.ShowMax        = showmax
 
     def get_rain(self, file=''):
         """Get the forecasted precipitation data."""
@@ -61,7 +62,7 @@ class RainForecast:
 
     def parse_precipfc_data(self):
         """Parse the forecasted precipitation data."""
-
+        global _plugin
         # Is the data available?
         if self.rainFile == None:
             Domoticz.Error("No correct data found from Buienradar site")
@@ -69,7 +70,7 @@ class RainForecast:
 
         result = {self.AVERAGE: None, self.AVERAGEMM: None, self.TOTAL: None, self.TIMEFRAME: None}
 
-        totalrain = totalrainmm = numberoflines = 0
+        maxrain = totalrainmm = numberoflines = 0
         lines = self.rainFile.splitlines()
         index = 0
         nrlines = min(len(lines), round(float(self._timeframe)/5) + 1)
@@ -77,17 +78,31 @@ class RainForecast:
         while index < nrlines:
             line = lines[index]
             (val, key) = line.split("|")
-            rainforecast = int(val)
-            mmu = 10**(float((int(val) - 109))/32)
-            totalrain += rainforecast
+            #calculate intensity to mm, see https://www.buienradar.nl/overbuienradar/gratis-weerdata
+            if int(val) == 0:
+                mmu = 0
+            else:
+                mmu = 10**(float((int(val) - 109))/32)
+
+            if maxrain < mmu:
+                maxrain = mmu
+
             totalrainmm += float(mmu)
             numberoflines += 1
             index += 1
             Domoticz.Debug(str(val) + '|' + str(key))
 
         if numberoflines > 0:
-            result[self.AVERAGE] = math.ceil(totalrain / numberoflines)
-            result[self.AVERAGEMM] = round((totalrainmm / numberoflines), 2)
+            averagerainrate = totalrainmm / numberoflines
+            if self.ShowMax == True:
+                #Return the max rainrate
+                result[self.AVERAGEMM] = round(maxrain,2) #mm/h
+            else:
+                #Return the average rainrate
+                result[self.AVERAGEMM] = round(averagerainrate, 2)#mm/h
+
+            #Calculate how much mm is expected to fall in the coming period.
+            result[self.AVERAGE] = round(averagerainrate * (numberoflines / 6), 1)#mm
         else:
             Domoticz.Log("No data found from Buienradar containing rain forecast, assuming rain forecast is 0")
             result[self.AVERAGE] = 0
@@ -96,8 +111,7 @@ class RainForecast:
         result[self.TIMEFRAME] = self._timeframe
 
         #return result
-        #Domoticz.Debug('Average: ' + str(result[self.AVERAGE]) + ' | Average mm/h: ' + str(result[self.AVERAGEMM]) + ' | Total: ' + str(result[self.TOTAL]) + ' | Timeframe: ' + str(result[self.TIMEFRAME]))
-        Domoticz.Log("Rain forecast: " + str(result[self.AVERAGE]) + " [0-255] | " + str(result[self.AVERAGEMM]) + " mm/hour")
+        Domoticz.Log("Rain forecast: " + str(result[self.AVERAGE]) + " mm | " + str(result[self.AVERAGEMM]) + " mm/hour")
         return result
 
     def get_precipfc_data(self, file=''):
