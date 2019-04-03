@@ -101,7 +101,8 @@ class RainForecast:
                 result[self.AVERAGEMM] = round(averagerainrate, 2)#mm/h
 
             #Calculate how much mm is expected to fall in the coming period.
-            result[self.AVERAGE] = round(averagerainrate * (numberoflines / 6), 1)#mm
+            #mm/u * u = mm
+            result[self.AVERAGE] = round(averagerainrate * (numberoflines / 12), 1)#mm
         else:
             Domoticz.Log("No data found from Buienradar containing rain forecast, assuming rain forecast is 0")
             result[self.AVERAGE] = 0
