@@ -30,8 +30,8 @@
         </param>
         <param field="Mode1" label="Rainrate options" width="200px" required="true">
             <options>
-                <option label="Maximum rainrate" value="True" default="true" />
-                <option label="Average rainrate" value="False"/>
+                <option label="Maximum rainrate" value=True default="true" />
+                <option label="Average rainrate" value=False/>
             </options>
         </param>
         <param field="Mode6" label="Debug" width="100px">
@@ -72,7 +72,7 @@ class BasePlugin:
         self.Error=False
 
         self.ShowMax = Parameters["Mode1"]
-        if self.ShowMax == "":
+        if self.ShowMax == "" or self.ShowMax == "True":
             self.ShowMax = True
 
         if Parameters["Mode6"] != "Normal":
@@ -288,7 +288,7 @@ def fillDevices():
 
         # Rain rate
         if br.rainRate == None: br.rainRate = 0
-        UpdateDevice(9, 0, str(br.rainRate*100)+";"+str(0))
+        UpdateDevice(9, 0, str(br.rainRate*100)+";"+str(br.rainToday))
 
         # Rain forecast
         result = rf.get_precipfc_data() ###30 nog nakijken
