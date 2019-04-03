@@ -85,7 +85,6 @@ class RainForecast:
 
             if maxrain < mmu:
                 maxrain = mmu
-                Domoticz.Log("Max rain is "+str(maxrain))
 
             totalrainmm += float(mmu)
             numberoflines += 1
