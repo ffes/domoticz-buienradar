@@ -1,119 +1,412 @@
 #
-# Rain forecast from Buienradar data
-# https://www.buienradar.nl/overbuienradar/gratis-weerdata
-# Shows average rainfall for the next minutes
-# Author: Gerard - https://github.com/seventer/raintocome
-# Updates: G3rard, August 2017, with input from https://github.com/mjj4791/python-buienradar/blob/master/buienradar/buienradar.py
+#   Buienradar.nl Weather Lookup Plugin
+#
+#   Frank Fesevur, 2017
+#   https://github.com/ffes/domoticz-buienradar
+#
+#   About the weather service:
+#   https://www.buienradar.nl/overbuienradar/gratis-weerdata
+#
+#   Updates by G3rard, August 2017
+#   - Rain rate, Visibility, Solar Radiation, and Weather forecast
+#   - Check if Barometer and Visibility are present in weather station, else get data from De Bilt weather station
+#   - Some changes in handling the lat, lon and interval
 
 try:
     import Domoticz
 except ImportError:
     import fakeDomoticz as Domoticz
 
-import math
 import urllib.request
+import urllib.error
+import xml.etree.ElementTree as ET
+from math import radians, cos, sin, asin, sqrt
+from datetime import datetime, timedelta
 
-class RainForecast:
+class Buienradar:
 
-    def __init__(self, latitude=52.101547, longitude=5.177919, timeframe=30, showmax = True):
-        self.rainFile       = None
-        self.url            = None
-        self.urlbackup      = None
-        self._lat           = latitude
-        self._lon           = longitude
-        self._timeframe     = timeframe
-        # keys in forcasted precipitation data
-        self.AVERAGE        = 'average'
-        self.AVERAGEMM      = 'averagemm'
-        self.TIMEFRAME      = 'timeframe'
-        self.TOTAL          = 'total'
-        self.ShowMax        = showmax
+    def __init__(self, latitude=52.101547, longitude=5.177919, interval=10):
+        self._lat               = latitude
+        self._lon               = longitude
+        self._interval          = interval
+        self.lastUpdate         = datetime.now()
+        self.stationID          = ""
+        self.stationIDbackup    = "6260"       # Weather station De Bilt, used for missing information
+        self.tree               = None
+        self.resetWeatherValues()
+        self.rainToday          = 0
 
-    def get_rain(self, file=''):
-        """Get the forecasted precipitation data."""
+    def resetWeatherValues(self):
 
-        Domoticz.Debug("Rain forecast started with following coordinates from Domoticz: " + str(self._lat) + ";" + str(self._lon))
+        self.observationDate    = datetime.now()
+        self.temperature        = None  # degrees Celsius
+        self.windSpeed          = None  # m/s
+        self.windBearing        = None  # degrees
+        self.windSpeedGusts     = None  # m/s
+        self.pressure           = None  # hPa
+        self.humidity           = None  # percentage
+        self.visibility         = None  # meters
+        self.solarIrradiance    = None  # W/m2
+        self.rainRate           = None  # mm/hour
+        self.weatherForecast    = None  # weather forecast prediction
+        self.weatherFCDateTime  = None  # weather forecast prediction date and time
+
+    #
+    # Calculate the great circle distance between two points
+    # on the earth (specified in decimal degrees)
+    #
+
+    def haversine(self, lat1, lon1, lat2, lon2):
+
+        # Convert decimal degrees to radians
+        lat1, lon1, lat2, lon2 = map(radians, [ lat1, lon1, lat2, lon2 ])
+
+        # Haversine formula
+        dlat = abs(lat2 - lat1)
+        dlon = abs(lon2 - lon1)
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
+        km = c * 6367
+        return km
+
+    #
+    # Get the weather information from http://xml.buienradar.nl
+    #
+
+    def getBuienradarXML(self, file = ''):
+
+        self.tree = None
 
         if file != '':
-            with open(file, 'r') as myfile:
-                self.rainFile = myfile.read()
-            return self.rainFile
+            self.tree = ET.ElementTree(file=file)
+            return
 
-        # https://br-gpsgadget-new.azurewebsites.net/data/raintext?lat=51&lon=3
-        self.url = "https://gps.buienradar.nl/getrr.php?lat={}&lon={}".format(round(float(self._lat),2), round(float(self._lon),2))
-        Domoticz.Debug("Rain forecast url: " + self.url)
-        self.urlbackup = "http://gadgets.buienradar.nl/data/raintext?lat={}&lon={}".format(round(float(self._lat),2), round(float(self._lon),2))
+        url         = 'http://xml.buienradar.nl/'
+        urlbackup   = 'https://api.buienradar.nl/'
         try:
-            request = urllib.request.Request(self.url)
-            with urllib.request.urlopen(request) as response:
-                self.rainFile = response.read().decode('utf-8')
-            return self.rainFile
+            Domoticz.Log('Retrieve weather data from ' + url)
+            xml = urllib.request.urlopen(url, data=None)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
-            Domoticz.Error("HTTP error in rain predictor: " + str(e) + " URL: " + self.url)
+            Domoticz.Error("Error: " + str(e) + " URL: " + url)
             Domoticz.Log("Going to try another Buienradar URL")
             try:
-                request = urllib.request.Request(self.urlbackup)
-                with urllib.request.urlopen(request) as response:
-                    self.rainFile = response.read().decode('utf-8')
-                return self.rainFile
+                Domoticz.Log('Retrieve weather data from ' + urlbackup)
+                xml = urllib.request.urlopen(urlbackup, data=None)
             except (urllib.error.HTTPError, urllib.error.URLError) as e:
-                Domoticz.Error("HTTP error in rain predictor: " + str(e) + " URL: " + self.urlbackup)
+                Domoticz.Error("Error: " + str(e) + " URL: " + urlbackup)
+
+        try:
+            self.tree = ET.parse(xml)
+        except ET.ParseError as err:
+            Domoticz.Log("XML parsing error: " + str(err))
+
+        self.lastUpdate = datetime.now()
+
+    #
+    # Find the weather station nearby
+    #
+
+    def getNearbyWeatherStation(self):
+
+        # Is the tree set?
+        if self.tree == None:
+            Domoticz.Log('No XML file found, try again later')
+            return
+
+        # Start distance far away
+        distance = 10000.0
+
+        # Go through all the weather stations
+        for stations in self.tree.iterfind('weergegevens/actueel_weer/weerstations'):
+
+            ### Check if XML contains weather stations
+            if stations.find('weerstation'):
+                Domoticz.Debug('XML file contains weather station information')
+            else:
+                Domoticz.Log('XML file contains no weather station information, try again later')
                 return
+        
+            for station in stations.findall('weerstation'):
 
-    def parse_precipfc_data(self):
-        """Parse the forecasted precipitation data."""
-        # Is the data available?
-        if self.rainFile == None:
-            Domoticz.Error("No correct data found from Buienradar site")
-            return 0, 0.0
+                # What is the temperature at this station?
+                temp = self.parseFloatValue(station.find('temperatuurGC').text)
 
-        result = {self.AVERAGE: None, self.AVERAGEMM: None, self.TOTAL: None, self.TIMEFRAME: None}
+                # If no is temperature set, skip this entry
+                # Many weather stations only measure wind speed
+                # They are not useful for weather information in domoticz
+                if temp == None:
+                    continue
 
-        maxrain = totalrainmm = numberoflines = 0
-        lines = self.rainFile.splitlines()
-        index = 0
-        nrlines = min(len(lines), round(float(self._timeframe)/5) + 1)
-        Domoticz.Debug("Timeframe: " + str(self._timeframe) + ", rows: " + str(nrlines))
-        while index < nrlines:
-            line = lines[index]
-            (val, key) = line.split("|")
-            #calculate intensity to mm, see https://www.buienradar.nl/overbuienradar/gratis-weerdata
-            if int(val) == 0:
-                mmu = 0
-            else:
-                mmu = 10**(float((int(val) - 109))/32)
+                # Where is this station?
+                lat = float(station.find('lat').text)
+                lon = float(station.find('lon').text)
 
-            if maxrain < mmu:
-                maxrain = mmu
+                # Is this the station nearby?
+                dist = self.haversine(self._lat, self._lon, lat, lon)
+                if dist < distance:
+                    distance = dist
+                    self.stationID = station.get('id')
 
-            totalrainmm += float(mmu)
-            numberoflines += 1
-            index += 1
-            Domoticz.Debug(str(val) + '|' + str(key))
+        # This is the station nearby
+        for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
+            Domoticz.Log('Found ' + station.find('stationnaam').text + ' (ID: ' + station.find('stationcode').text + ') at ' + "{:.1f}".format(distance) + ' km from your home location')
+            break
 
-        if numberoflines > 0:
-            averagerainrate = totalrainmm / numberoflines
-            if self.ShowMax == True:
-                #Return the max rainrate
-                result[self.AVERAGEMM] = round(maxrain,2) #mm/h
-            else:
-                #Return the average rainrate
-                result[self.AVERAGEMM] = round(averagerainrate, 2)#mm/h
+        # Check if location is outside of The Netherlands
+        if distance > 100:
+            Domoticz.Log("Your location (" + str(self._lat) + "," +  str(self._lon) + ") is too far away...")
+            Domoticz.Log("This plugin only works for locations within The Netherlands")
+            self.stationID = ""
 
-            #Calculate how much mm is expected to fall in the coming period.
-            #mm/u * u = mm
-            result[self.AVERAGE] = round(averagerainrate * (numberoflines / 12), 1)#mm
+    #
+    # Check if interval has passed and update can be collected
+    #
+
+    def needUpdate(self):
+
+        # Is a weather station found?
+        if self.stationID == "":
+            return False
+
+        nextUpdate = self.lastUpdate + timedelta(minutes=self._interval)
+        return datetime.now() > nextUpdate
+
+    #
+    # Parse an int and return None if no int is given
+    #
+
+    def parseIntValue(self, s):
+
+        try:
+            return int(s)
+        except:
+            return None
+
+    #
+    # Parse a float and return None if no float is given
+    #
+
+    def parseFloatValue(self, s):
+
+        try:
+            return float(s)
+        except:
+            return None
+
+    #
+    # Based on https://nl.wikipedia.org/wiki/Gevoelstemperatuur
+    #
+
+    def getWindChill(self):
+
+        # Do we have a temperature?
+        if self.temperature == None:
+            return None
+
+        # Wind chill is only valid for temperatures between -46 C and +10 C
+        if self.temperature < -46 or self.temperature > 10:
+            return self.temperature
+
+        # No wind, no wind chill
+        if self.windSpeed == None:
+            return self.temperature
+
+        # Wind chill is only valid for wind speed between 1.3 m/s and 49 m/s
+        if self.windSpeed < 1.3 or self.windSpeed > 49:
+            return self.temperature
+
+        # Calculate the wind chill based on the JAG/TI-method
+        if self.temperature != None and self.windSpeed != None:
+            windChill = round(13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16)), 1)
         else:
-            Domoticz.Log("No data found from Buienradar containing rain forecast, assuming rain forecast is 0")
-            result[self.AVERAGE] = 0
-            result[self.AVERAGEMM] = 0.0
-        result[self.TOTAL] = round(totalrainmm/12, 2)
-        result[self.TIMEFRAME] = self._timeframe
+            windChill = None
+        return windChill
 
-        #return result
-        Domoticz.Log("Rain forecast: " + str(result[self.AVERAGE]) + " mm | " + str(result[self.AVERAGEMM]) + " mm/hour")
-        return result
+    #
+    # Convert the wind direction to a (English) abbreviation
+    #
 
-    def get_precipfc_data(self, file=''):
-        self.get_rain(file)
-        return self.parse_precipfc_data()
+    def getWindDirection(self):
+
+        if self.windBearing == None:
+            return ""
+
+        if self.windBearing < 0 or self.windBearing > 360:
+            return ""
+
+        if self.windBearing > 348 or  self.windBearing <=  11:
+            return "N"
+        if self.windBearing >  11 and self.windBearing <=  33:
+            return "NNE"
+        if self.windBearing >  33 and self.windBearing <=  57:
+            return "NE"
+        if self.windBearing >  57 and self.windBearing <=  78:
+            return "ENE"
+        if self.windBearing >  78 and self.windBearing <= 102:
+            return "E"
+        if self.windBearing > 102 and self.windBearing <= 123:
+            return "ESE"
+        if self.windBearing > 123 and self.windBearing <= 157:
+            return "SE"
+        if self.windBearing > 157 and self.windBearing <= 168:
+            return "SSE"
+        if self.windBearing > 168 and self.windBearing <= 192:
+            return "S"
+        if self.windBearing > 192 and self.windBearing <= 213:
+            return "SSW"
+        if self.windBearing > 213 and self.windBearing <= 237:
+            return "SW"
+        if self.windBearing > 237 and self.windBearing <= 258:
+            return "WSW"
+        if self.windBearing > 258 and self.windBearing <= 282:
+            return "W"
+        if self.windBearing > 282 and self.windBearing <= 303:
+            return "WNW"
+        if self.windBearing > 303 and self.windBearing <= 327:
+            return "NW"
+        if self.windBearing > 327 and self.windBearing <= 348:
+            return "NNW"
+
+        # just in case
+        return ""
+
+    #
+    # Based on various picture of analogue barometers found in the Internet
+    # If anybody has better input, please let me know
+    #
+
+    def getBarometerForecast(self):
+
+        if self.pressure == None:
+            return 5
+
+        # Thunderstorm = 4
+        if self.pressure < 966:
+            return 4
+
+        # Cloudy/Rain = 6
+        if self.pressure < 993:
+            return 6
+
+        # Cloudy = 2
+        if self.pressure < 1007:
+            return 2
+
+        # Unstable = 3
+        if self.pressure < 1013:
+            return 3
+
+        # Stable = 0
+        if self.pressure < 1033:
+            return 0
+
+        # Sunny = 1
+        return 1
+
+    #
+    # Based on Mollier diagram and Fanger (comfortable)
+    # These values are normally used for indoor situation,
+    # but this weather lookup plugin obviously is outdoor.
+    #
+
+    def getHumidityStatus(self):
+
+        # Is there a humidity?
+        if self.humidity == None:
+            return 0
+
+        # Dry?
+        if self.humidity <= 30:
+            return 2
+
+        # Wet?
+        if self.humidity >= 70:
+            return 3
+
+        # Comfortable?
+        if self.humidity >= 35 and self.humidity <= 65:
+            if self.temperature != None:
+                if self.temperature >= 22 and self.temperature <= 26:
+                    return 1
+
+        # Normal
+        return 0
+
+    #
+    # Retrieve all the weather data from the nearby weather station
+    #
+
+    def getWeather(self):
+
+        #Reset rain counter if it is a new day.
+        if (datetime.now() - timedelta(minutes=self._interval)).day != datetime.now().day:
+            self.rainToday = 0
+
+        # Is the tree set?
+        if self.tree == None:
+            return False
+
+        # Was the station set properly?
+        if self.stationID == "":
+            return False
+
+        # Reset all the weather data
+        self.resetWeatherValues()
+
+        # Get the weather information from the station
+        for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationID +'\']'):
+
+            #self.observationDate   = datetime.strptime(station.find('datum').text, '%m/%d/%Y %H:%M:%S')
+            self.temperature        = self.parseFloatValue(station.find('temperatuurGC').text)
+            self.windSpeed          = self.parseFloatValue(station.find('windsnelheidMS').text)
+            self.windBearing        = self.parseFloatValue(station.find('windrichtingGR').text)
+            self.windSpeedGusts     = self.parseFloatValue(station.find('windstotenMS').text)
+            self.pressure           = self.parseFloatValue(station.find('luchtdruk').text)
+            self.humidity           = self.parseIntValue(station.find('luchtvochtigheid').text)
+            self.visibility         = self.parseIntValue(station.find('zichtmeters').text)
+            self.solarIrradiance    = self.parseFloatValue(station.find('zonintensiteitWM2').text)
+            self.rainRate           = self.parseFloatValue(station.find('regenMMPU').text)
+            if self.rainRate == None:
+                self.rainRate = 0
+            self.rainToday          += round(self.rainRate * (self._interval/60),1)
+
+            if self.pressure == None and self.visibility == None:
+                Domoticz.Log("No Barometer and Visibility info found in your weather station, getting info from weather station De Bilt")
+            elif self.pressure == None:
+                Domoticz.Log("No Barometer info found in your weather station, getting Barometer info from weather station De Bilt")
+            elif self.visibility == None:
+                Domoticz.Log("No Visibility info found in your weather station, getting visibility info from weather station De Bilt")
+            
+            if self.pressure == None:
+                for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationIDbackup +'\']'):
+                    self.pressure = self.parseFloatValue(station.find('luchtdruk').text)
+
+            if self.visibility == None:
+                for station in self.tree.iterfind('weergegevens/actueel_weer/weerstations/weerstation[@id=\''+ self.stationIDbackup +'\']'):
+                    self.visibility = self.parseFloatValue(station.find('zichtmeters').text)
+
+            #Domoticz.Log("Observation: " + str(self.observationDate))
+            Domoticz.Log("Temperature: " + str(self.temperature))
+            Domoticz.Log("Wind Speed: " + str(self.windSpeed) + " | Wind Bearing: " + str(self.windBearing) + " | Wind Direction: " + self.getWindDirection() +
+                         " | Wind Speed Gusts: " + str(self.windSpeedGusts) + " | Wind Chill: " + str(self.getWindChill()))
+            Domoticz.Log("Barometer: " + str(self.pressure) + " | Barometer Forecast: " + str(self.getBarometerForecast()))
+            Domoticz.Log("Humidity: " + str(self.humidity) + " | Humidity status: " + str(self.getHumidityStatus()))
+            Domoticz.Log("Visibility: " + str(self.visibility))
+            Domoticz.Log("Solar Irradiance: " + str(self.solarIrradiance))
+            Domoticz.Log("Rain rate: " + str(self.rainRate))
+            Domoticz.Log("Todays rain is " + str(self.rainToday) + " mm")
+
+            self.lastUpdate = datetime.now()
+
+            #return True
+
+        for prediction in self.tree.iterfind('weergegevens/verwachting_vandaag'):
+            self.weatherForecast = prediction.find('titel').text
+            if len(self.weatherForecast) > 200:
+                self.weatherForecast[0:200]
+            self.weatherFCDateTime = prediction.find('tijdweerbericht').text
+            Domoticz.Log("Weather prediction today: " + str(self.weatherForecast) + " (" + str(self.weatherFCDateTime) + ")")
+            
+            return True
+
+        return False
