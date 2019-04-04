@@ -216,8 +216,11 @@ class Buienradar:
             return self.temperature
 
         # Calculate the wind chill based on the JAG/TI-method
-        windChill = 13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16))
-        return round(windChill, 1)
+        if self.temperature != None and self.windSpeed != None:
+            windChill = round(13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16)), 1)
+        else:
+            windChill = None
+        return windChill
 
     #
     # Convert the wind direction to a (English) abbreviation
