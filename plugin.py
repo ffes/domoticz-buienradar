@@ -288,7 +288,7 @@ def fillDevices():
 
         # Rain rate
         if br.rainRate == None: br.rainRate = 0
-        UpdateDevice(9, 0, str(br.rainRate*100)+";"+str(0))
+        UpdateDevice(9, 0, str(br.rainRate*100)+";"+str(br.rainToday))
 
         # Rain forecast
         result = rf.get_precipfc_data() ###30 nog nakijken

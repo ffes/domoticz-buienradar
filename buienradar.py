@@ -26,29 +26,30 @@ from datetime import datetime, timedelta
 class Buienradar:
 
     def __init__(self, latitude=52.101547, longitude=5.177919, interval=10):
-        self._lat = latitude
-        self._lon = longitude
-        self._interval = interval
-        self.lastUpdate = datetime.now()
-        self.stationID = ""
-        self.stationIDbackup = "6260"       # Weather station De Bilt, used for missing information
-        self.tree = None
+        self._lat               = latitude
+        self._lon               = longitude
+        self._interval          = interval
+        self.lastUpdate         = datetime.now()
+        self.stationID          = ""
+        self.stationIDbackup    = "6260"       # Weather station De Bilt, used for missing information
+        self.tree               = None
         self.resetWeatherValues()
+        self.rainToday          = 0
 
     def resetWeatherValues(self):
 
-        self.observationDate = datetime.now()
-        self.temperature = None             # degrees Celsius
-        self.windSpeed = None               # m/s
-        self.windBearing = None             # degrees
-        self.windSpeedGusts = None          # m/s
-        self.pressure = None                # hPa
-        self.humidity = None                # percentage
-        self.visibility = None              # meters
-        self.solarIrradiance = None         # W/m2
-        self.rainRate = None                # mm/hour
-        self.weatherForecast = None         # weather forecast prediction
-        self.weatherFCDateTime = None       # weather forecast prediction date and time
+        self.observationDate    = datetime.now()
+        self.temperature        = None  # degrees Celsius
+        self.windSpeed          = None  # m/s
+        self.windBearing        = None  # degrees
+        self.windSpeedGusts     = None  # m/s
+        self.pressure           = None  # hPa
+        self.humidity           = None  # percentage
+        self.visibility         = None  # meters
+        self.solarIrradiance    = None  # W/m2
+        self.rainRate           = None  # mm/hour
+        self.weatherForecast    = None  # weather forecast prediction
+        self.weatherFCDateTime  = None  # weather forecast prediction date and time
 
     #
     # Calculate the great circle distance between two points
@@ -215,8 +216,11 @@ class Buienradar:
             return self.temperature
 
         # Calculate the wind chill based on the JAG/TI-method
-        windChill = 13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16))
-        return round(windChill, 1)
+        if self.temperature != None and self.windSpeed != None:
+            windChill = round(13.12 + (0.6215 * self.temperature) - (13.96 * pow(self.windSpeed, 0.16)) + (0.4867 * self.temperature * pow(self.windSpeed, 0.16)), 1)
+        else:
+            windChill = None
+        return windChill
 
     #
     # Convert the wind direction to a (English) abbreviation
@@ -334,6 +338,10 @@ class Buienradar:
 
     def getWeather(self):
 
+        #Reset rain counter if it is a new day.
+        if (datetime.now() - timedelta(minutes=self._interval)).day != datetime.now().day:
+            self.rainToday = 0
+
         # Is the tree set?
         if self.tree == None:
             return False
@@ -358,6 +366,9 @@ class Buienradar:
             self.visibility         = self.parseIntValue(station.find('zichtmeters').text)
             self.solarIrradiance    = self.parseFloatValue(station.find('zonintensiteitWM2').text)
             self.rainRate           = self.parseFloatValue(station.find('regenMMPU').text)
+            if self.rainRate == None:
+                self.rainRate = 0
+            self.rainToday          += round(self.rainRate * (self._interval/60),1)
 
             if self.pressure == None and self.visibility == None:
                 Domoticz.Log("No Barometer and Visibility info found in your weather station, getting info from weather station De Bilt")
@@ -383,6 +394,7 @@ class Buienradar:
             Domoticz.Log("Visibility: " + str(self.visibility))
             Domoticz.Log("Solar Irradiance: " + str(self.solarIrradiance))
             Domoticz.Log("Rain rate: " + str(self.rainRate))
+            Domoticz.Log("Todays rain is " + str(self.rainToday) + " mm")
 
             self.lastUpdate = datetime.now()
 
