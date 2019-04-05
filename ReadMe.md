@@ -37,12 +37,6 @@ cd domoticz/plugins
 git clone https://github.com/ffes/domoticz-buienradar.git
 ```
 
-Alternatively you can download the latest version from
-https://github.com/ffes/domoticz-buienradar/archive/master.zip
-and unzip it. Then create a directory on your Domoticz device
-in `domoticz/plugins` named `buienradar` and transfer all the
-files to your device.
-
 Restart your Domoticz service with:
 
 ```bash
