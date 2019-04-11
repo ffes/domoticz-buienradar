@@ -62,14 +62,14 @@ from rainforecast import RainForecast
 #                      Domoticz call back functions                         #
 #############################################################################
 class BasePlugin:
-    myLat = myLon = 0
-    br = rf = None
-    interval = timeframe = None
+    myLat       = myLon = 0
+    br          = rf = None
+    interval    = timeframe = None
 
     def onStart(self):
         #pylint: disable=undefined-variable
         global br, rf
-        self.Error=False
+        self.Error = False
 
         self.ShowMax = Parameters["Mode1"]
         if self.ShowMax == "" or self.ShowMax == "True":
@@ -79,11 +79,16 @@ class BasePlugin:
             Domoticz.Debugging(1)
             DumpConfigToLog()
 
+        if CheckInternet() == False:
+            self.Error = "You do not have a working internet connection."
+            Domoticz.Error(self.Error)
+
         # Get the location from the Settings
         if not "Location" in Settings:
-        	self.Error="Location not set in Settings, please update your settings."
+        	self.Error = "Location not set in Settings, please update your settings."
         	Domoticz.Error(self.Error)
-        else:
+        
+        if self.Error == False:
 
 	        # The location is stored in a string in the Settings
 	        loc = Settings["Location"].split(";")
@@ -136,7 +141,13 @@ class BasePlugin:
 	        Domoticz.Heartbeat(30)
 
     def onHeartbeat(self):
-        if self.Error==False:
+        if CheckInternet() == False:
+            self.Error = "You do not have a working internet connection."
+            Domoticz.Error(self.Error)
+        elif CheckInternet() == True and self.Error == "You do not have a working internet connection.":
+            self.Error = False
+
+        if self.Error == False:
             # Does the weather information needs to be updated?
             global br
             if br.needUpdate():
@@ -157,6 +168,13 @@ def onHeartbeat():
 #############################################################################
 #                         Domoticz helper functions                         #
 #############################################################################
+
+def CheckInternet():
+    try:
+        requests.get(url='http://www.google.com/', timeout=5)
+        return True
+    except requests.ConnectionError:
+        return False
 
 def LogMessage(Message):
     if Parameters["Mode6"] == "File":
