@@ -49,7 +49,8 @@ try:
     import Domoticz
 except ImportError:
     import fakeDomoticz as Domoticz
-
+    
+import requests
 import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
