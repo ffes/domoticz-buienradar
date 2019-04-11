@@ -49,11 +49,8 @@ try:
     import Domoticz
 except ImportError:
     import fakeDomoticz as Domoticz
-    
+
 import requests
-import urllib.request
-import urllib.error
-import xml.etree.ElementTree as ET
 from math import radians, cos, sin, asin, sqrt
 from datetime import datetime, timedelta
 from buienradar import Buienradar
