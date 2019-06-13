@@ -12,7 +12,7 @@
 #   Rain prediction from Rainfuture script by gerardvs - https://github.com/seventer/raintocome and Buienradar script from mjj4791 - https://github.com/mjj4791/python-buienradar
 #
 """
-<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.4.5" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
+<plugin key="Buienradar" name="Buienradar.nl (Weather lookup)" author="ffes" version="2.5.0" wikilink="https://github.com/ffes/domoticz-buienradar" externallink="https://www.buienradar.nl/overbuienradar/gratis-weerdata">
     <params>
         <param field="Mode2" label="Update every x minutes" width="200px" required="true" default="5"/>
         <param field="Mode3" label="Rain forecast timeframe in minutes" width="200px" required="true" default="30"/>
@@ -79,7 +79,7 @@ class BasePlugin:
 
         if CheckInternet() == False:
             self.Error = "You do not have a working internet connection."
-            Domoticz.Error(self.Error)
+            #Domoticz.Error(self.Error)
 
         # Get the location from the Settings
         if not "Location" in Settings:
@@ -144,6 +144,7 @@ class BasePlugin:
             Domoticz.Error(self.Error)
         elif CheckInternet() == True and self.Error == "You do not have a working internet connection.":
             self.Error = False
+            Domoticz.Error("Your internet connection is back.")
 
         if self.Error == False:
             # Does the weather information needs to be updated?
@@ -158,6 +159,9 @@ class BasePlugin:
 _plugin = BasePlugin()
 
 def onStart():
+    while CheckInternet() == False:
+        print("You do not have a working internet connection.")
+        time.sleep(100)
     _plugin.onStart()
 
 def onHeartbeat():
